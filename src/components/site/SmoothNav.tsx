@@ -59,15 +59,14 @@ export function SiteNav({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const links =
-    pathname === "/"
-      ? navLinks.filter((link) => link.label !== "Home")
-      : navLinks;
+  const links = navLinks.filter(
+    (link) => !(pathname === "/" && link.label === "Home"),
+  );
 
   return (
     <nav className={className}>
       {links.map((link) =>
-        "id" in link && link.id ? (
+        link.href.includes("#") ? (
           <ScrollLink
             key={link.label}
             href={link.href}
