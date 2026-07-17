@@ -828,3 +828,26 @@ img {
     padding-block: 60px;
   }
 }
+
+/* Auth surfaces */
+.auth-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #e8eef3 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #f0f0f0 0%, transparent 50%),
+    #f4f4f5;
+  padding: 24px 16px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 28rem;
+  border-radius: 1.5rem;
+  background: #fff;
+  padding: 2rem;
+  box-shadow: 0 1px 2px rgb(12 4 7 / 4%);
+}

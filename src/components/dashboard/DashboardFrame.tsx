@@ -1,12 +1,8 @@
-import { redirect } from "next/navigation";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { isAuthenticated } from "@/lib/auth";
+import { getProfile, requireAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export async function requireAdmin() {
-  if (!(await isAuthenticated())) {
-    redirect("/dashboard/login");
-  }
-}
+export { requireAdmin };
 
 export async function DashboardFrame({
   children,
@@ -18,6 +14,10 @@ export async function DashboardFrame({
   action?: React.ReactNode;
 }) {
   await requireAdmin();
+  const profile = await getProfile();
+  if (profile && !profile.onboarding_completed) {
+    redirect("/onboarding");
+  }
 
   return (
     <div className="dash-shell">

@@ -1,52 +1,75 @@
-import { createHmac, timingSafeEqual } from "crypto";
-import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import type { AppRole, Profile } from "@/lib/auth-types";
 
-const COOKIE = "realfy_admin_session";
+export type { AppRole, AccountType, Profile, Organization, Membership } from "@/lib/auth-types";
 
-function secret() {
-  return process.env.ADMIN_SECRET || "realfy-dev-secret-change-me";
+export async function getUser() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
 }
 
-function adminPassword() {
-  return process.env.ADMIN_PASSWORD || "admin123";
-}
+export async function getProfile(): Promise<Profile | null> {
+  const user = await getUser();
+  if (!user) return null;
 
-function sign(value: string) {
-  return createHmac("sha256", secret()).update(value).digest("hex");
-}
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("kn_profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
 
-export function verifyCredentials(password: string) {
-  return password === adminPassword();
-}
-
-export async function createSession() {
-  const payload = `admin:${Date.now()}`;
-  const token = `${payload}.${sign(payload)}`;
-  const jar = await cookies();
-  jar.set(COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
-}
-
-export async function destroySession() {
-  const jar = await cookies();
-  jar.delete(COOKIE);
+  return data as Profile | null;
 }
 
 export async function isAuthenticated() {
-  const jar = await cookies();
-  const token = jar.get(COOKIE)?.value;
-  if (!token) return false;
-  const [payload, signature] = token.split(".");
-  if (!payload || !signature) return false;
-  const expected = sign(payload);
-  try {
-    return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
-  } catch {
-    return false;
+  return Boolean(await getUser());
+}
+
+export async function requireUser(next = "/dashboard") {
+  const user = await getUser();
+  if (!user) {
+    redirect(`/sign-in?next=${encodeURIComponent(next)}`);
   }
+  return user;
+}
+
+export async function requireAdmin() {
+  return requireUser("/dashboard");
+}
+
+export async function signOut() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+}
+
+export async function getMemberships() {
+  const user = await getUser();
+  if (!user) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("kn_memberships")
+    .select("*, kn_organizations(*)")
+    .eq("user_id", user.id);
+
+  return data ?? [];
+}
+
+export function roleLabel(role: AppRole) {
+  const labels: Record<AppRole, string> = {
+    platform_admin: "Platform administrator",
+    owner: "Business owner",
+    manager: "Manager",
+    employee: "Employee",
+    realtor: "Realtor",
+    tax_preparer: "Tax preparer",
+    assistant: "Assistant",
+    customer: "Customer",
+  };
+  return labels[role];
 }

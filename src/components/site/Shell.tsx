@@ -74,10 +74,10 @@ export function SiteFooter() {
               Contact us
             </ScrollLink>
             <Link
-              href="/dashboard"
+              href="/sign-in"
               className="text-sm text-white/55 transition-colors hover:text-white"
             >
-              Admin
+              Sign in
             </Link>
           </div>
         </div>

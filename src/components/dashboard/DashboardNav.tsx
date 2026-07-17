@@ -18,14 +18,14 @@ export function DashboardNav() {
 
   async function logout() {
     await fetch("/api/auth", { method: "DELETE" });
-    router.push("/dashboard/login");
+    router.push("/sign-in");
     router.refresh();
   }
 
   return (
     <aside className="dash-nav">
       <div className="mb-8 px-2">
-        <p className="text-xs uppercase tracking-[0.2em] text-white/50">Realfy</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-white/50">KeyNestOS</p>
         <h1 className="text-xl font-semibold">Broker CRM</h1>
       </div>
       {links.map((link) => {
