@@ -12,38 +12,79 @@ import type {
   SiteSettings,
 } from "./types";
 
-const DATA_DIR = path.join(/*turbopackIgnore: true*/ process.cwd(), "data");
+const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+const DATA_DIR = IS_SERVERLESS
+  ? path.join("/tmp", "keynest-data")
+  : path.join(/*turbopackIgnore: true*/ process.cwd(), "data");
+
 const DB_PATH = path.join(DATA_DIR, "db.json");
-const UPLOAD_DIR = path.join(
-  /*turbopackIgnore: true*/ process.cwd(),
-  "public",
-  "uploads",
-);
+
+const UPLOAD_DIR = IS_SERVERLESS
+  ? path.join("/tmp", "keynest-uploads")
+  : path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads");
+
+type DbGlobal = typeof globalThis & { __keynestDb?: Database };
+
+function memoryDb() {
+  return (globalThis as DbGlobal).__keynestDb;
+}
+
+function setMemoryDb(db: Database) {
+  (globalThis as DbGlobal).__keynestDb = db;
+}
 
 function ensureDirs() {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true });
+  try {
+    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+    if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true });
+  } catch {
+    // Serverless filesystems can be restricted; fall back to memory.
+  }
 }
 
 export function getDb(): Database {
+  const cached = memoryDb();
+  if (cached) return cached;
+
   ensureDirs();
-  if (!existsSync(DB_PATH)) {
-    const seeded = seedDatabase();
-    writeFileSync(DB_PATH, JSON.stringify(seeded, null, 2));
-    return seeded;
+
+  try {
+    if (existsSync(DB_PATH)) {
+      const db = JSON.parse(readFileSync(DB_PATH, "utf-8")) as Database;
+      setMemoryDb(db);
+      return db;
+    }
+  } catch {
+    // Ignore read errors and seed a fresh database.
   }
-  return JSON.parse(readFileSync(DB_PATH, "utf-8")) as Database;
+
+  const seeded = seedDatabase();
+  setMemoryDb(seeded);
+
+  try {
+    ensureDirs();
+    writeFileSync(DB_PATH, JSON.stringify(seeded, null, 2));
+  } catch {
+    // Memory-only is fine on Vercel when disk writes fail.
+  }
+
+  return seeded;
 }
 
 function saveDb(db: Database) {
-  ensureDirs();
-  writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  setMemoryDb(db);
+  try {
+    ensureDirs();
+    writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  } catch {
+    // Persist in memory for the current serverless instance.
+  }
 }
 
 export function resetDb() {
-  ensureDirs();
   const seeded = seedDatabase();
-  writeFileSync(DB_PATH, JSON.stringify(seeded, null, 2));
+  saveDb(seeded);
   return seeded;
 }
 
