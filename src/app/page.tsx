@@ -1,65 +1,372 @@
 import Image from "next/image";
+import Link from "next/link";
+import { ContactForm } from "@/components/site/ContactForm";
+import { FaqAccordion } from "@/components/site/FaqAccordion";
+import { Hero } from "@/components/site/Hero";
+import { PropertyCard } from "@/components/site/PropertyCard";
+import { SiteFooter, SiteHeader } from "@/components/site/Shell";
+import { listAgents, listCategories, listProperties, getSettings } from "@/lib/db";
+import { ASSETS } from "@/lib/seed";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default function HomePage() {
+  const settings = getSettings();
+  const properties = listProperties({ status: "published", featured: true }).slice(
+    0,
+    6,
+  );
+  const categories = listCategories();
+  const agents = listAgents();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <>
+      <SiteHeader />
+      <main>
+        <Hero
+          headline="Homes worth coming back to."
+          support="Browse curated listings, meet trusted agents, and move from first tour to keys with a clearer path."
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+        <section id="properties" className="section-pad bg-white scroll-mt-[88px]">
+          <div className="container-wide">
+            <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="heading-xl">Featured properties</h2>
+              </div>
+              <Link href="/properties" className="btn-secondary">
+                Explore all
+              </Link>
+            </div>
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              {properties.map((property) => (
+                <PropertyCard key={property.id} property={property} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="about" className="section-pad bg-[#f7f7f7] scroll-mt-[88px]">
+          <div className="container-wide grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              <h2 className="heading-xl mb-5">{settings.aboutHeading}</h2>
+              <p className="mb-8 max-w-xl text-lg leading-relaxed text-[#758696]">
+                {settings.aboutText}
+              </p>
+              <Link href="/about" className="btn-primary">
+                Read more
+              </Link>
+            </div>
+            <div className="overflow-hidden rounded-[28px]">
+              <Image
+                src={settings.aboutImage}
+                alt="Featured home"
+                width={900}
+                height={700}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="section-pad">
+          <div className="container-wide">
+            <div className="mb-10 max-w-2xl">
+              <h2 className="heading-xl">Start your journey to your ideal property</h2>
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              {categories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/properties?category=${category.slug}`}
+                  className="group overflow-hidden rounded-[24px]"
+                >
+                  <div className="relative aspect-[4/5]">
+                    <Image
+                      src={category.image}
+                      alt={category.name}
+                      fill
+                      className="object-cover transition duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-6 text-white">
+                      <h3 className="mb-2 text-2xl font-semibold tracking-tight">
+                        {category.name}
+                      </h3>
+                      <p className="mb-4 text-sm text-white/80">{category.description}</p>
+                      <span className="text-sm font-medium underline underline-offset-4">
+                        Explore Now
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="section-pad bg-[#0c0407] text-white">
+          <div className="container-wide grid items-center gap-10 lg:grid-cols-2">
+            <div className="overflow-hidden rounded-[28px]">
+              <Image
+                src={ASSETS.choose}
+                alt="Why choose us"
+                width={900}
+                height={700}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div>
+              <h2 className="mb-5 text-4xl font-semibold tracking-tight md:text-5xl">
+                Why we are best in Real-Estate market?
+              </h2>
+              <p className="mb-8 text-lg leading-relaxed text-white/70">
+                With our unmatched expertise, personalized service, and deep knowledge
+                of the real estate market, we make your home buying or selling
+                experience seamless and stress-free. Our dedicated team of professionals
+                listens to your needs and provides tailored guidance.
+              </p>
+              <Link href="/contact" className="btn-white">
+                Contact us
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="section-pad">
+          <div className="container-wide">
+            <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="heading-xl">The numbers behind our success</h2>
+              </div>
+              <Link href="/contact" className="btn-secondary">
+                Contact us
+              </Link>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+              {settings.stats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-[24px] border border-[#e8e8e8] bg-[#fafafa] p-7"
+                >
+                  <p className="mb-3 text-5xl font-semibold tracking-tight text-[#0c0407]">
+                    {stat.value}
+                  </p>
+                  <h3 className="mb-3 text-lg font-semibold text-[#0c0407]">
+                    {stat.label}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-[#758696]">
+                    {stat.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="section-pad bg-[#f7f7f7]">
+          <div className="container-wide">
+            <div className="mb-12 max-w-3xl">
+              <h2 className="heading-xl">
+                Find your dream house & follow our process
+              </h2>
+            </div>
+            <div className="space-y-10">
+              {[
+                {
+                  step: "Step-1",
+                  title: "Look for your dream home in your local area today",
+                  text: "Explore a carefully curated selection of stunning homes near you that perfectly match your unique lifestyle, preferences, and specific needs.",
+                  image: ASSETS.process[0],
+                },
+                {
+                  step: "Step-2",
+                  title: "Schedule a meeting with one of our agents",
+                  text: "Book a personalized meeting with one of our experienced agents to thoroughly explore all your options and find the perfect property.",
+                  image: ASSETS.process[1],
+                },
+                {
+                  step: "Step-3",
+                  title: "A month or less, get your ideal home",
+                  text: "Secure your dream home in a month or less with our expert assistance, personalized guidance, and streamlined processes.",
+                  image: ASSETS.process[2],
+                },
+              ].map((item, index) => (
+                <div
+                  key={item.step}
+                  className={`grid items-center gap-8 lg:grid-cols-2 ${
+                    index % 2 === 1 ? "lg:[&>*:first-child]:order-2" : ""
+                  }`}
+                >
+                  <div>
+                    <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#0c0407]">
+                      {item.step}
+                    </p>
+                    <h3 className="mb-4 text-3xl font-semibold tracking-tight text-[#0c0407]">
+                      {item.title}
+                    </h3>
+                    <p className="text-lg leading-relaxed text-[#758696]">{item.text}</p>
+                  </div>
+                  <div className="overflow-hidden rounded-[28px]">
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      width={800}
+                      height={560}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="agents" className="section-pad overflow-hidden scroll-mt-[88px]">
+          <div className="container-wide mb-10">
+            <h2 className="heading-xl">Our expert agents</h2>
+          </div>
+          <div className="marquee">
+            <div className="marquee-track">
+              {[...agents, ...agents].map((agent, i) => (
+                <div
+                  key={`${agent.id}-${i}`}
+                  className="w-[220px] shrink-0 text-center"
+                >
+                  <div className="mb-4 overflow-hidden rounded-[22px]">
+                    <Image
+                      src={agent.image}
+                      alt={agent.name}
+                      width={220}
+                      height={280}
+                      className="aspect-[4/5] w-full object-cover"
+                    />
+                  </div>
+                  <h3 className="font-semibold text-[#0c0407]">{agent.name}</h3>
+                  <p className="text-sm text-[#758696]">{agent.title}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="section-pad bg-[#f7f7f7]">
+          <div className="container-wide">
+            <div className="mb-10">
+              <h2 className="heading-xl">Real stories from happy homeowners</h2>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-3">
+              {[
+                {
+                  quote:
+                    "Their attention to detail market expertise made all the difference.",
+                  text: "Their dedication and commitment to finding the right property were evident throughout. I highly recommend their services.",
+                  name: "David Martinez",
+                  place: "San Jose, South Dakota",
+                  image: ASSETS.testimonials[0],
+                },
+                {
+                  quote: "An exceptional experience from start to finish!",
+                  text: "From the first meeting to the closing, they were professional, knowledgeable, and always available to answer our questions.",
+                  name: "James Thompson",
+                  place: "Dallas, Texas",
+                  image: ASSETS.testimonials[1],
+                },
+                {
+                  quote: "Exceptional service and outstanding results.",
+                  text: "The team’s marketing strategy and negotiation skills exceeded my expectations. I couldn’t be more pleased with the outcome.",
+                  name: "Olivia Carter",
+                  place: "Boston, Florida",
+                  image: ASSETS.testimonials[2],
+                },
+              ].map((item) => (
+                <article
+                  key={item.name}
+                  className="rounded-[24px] border border-[#e8e8e8] bg-white p-7"
+                >
+                  <h3 className="mb-4 text-2xl font-semibold tracking-tight text-[#0c0407]">
+                    “{item.quote}”
+                  </h3>
+                  <p className="mb-6 text-[#758696]">{item.text}</p>
+                  <div className="flex items-center gap-3">
+                    <Image
+                      src={item.image}
+                      alt={item.name}
+                      width={56}
+                      height={56}
+                      className="h-14 w-14 rounded-full object-cover"
+                    />
+                    <div>
+                      <p className="font-semibold text-[#0c0407]">{item.name}</p>
+                      <p className="text-sm text-[#758696]">{item.place}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="section-pad">
+          <div className="container-wide">
+            <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="heading-xl">Read our latest blogs</h2>
+              </div>
+              <span className="btn-secondary">Explore All</span>
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              {ASSETS.blog.map((image, index) => (
+                <article key={image} className="group">
+                  <div className="mb-4 overflow-hidden rounded-[22px]">
+                    <Image
+                      src={image}
+                      alt="Blog article"
+                      width={640}
+                      height={420}
+                      className="aspect-[3/2] w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  <p className="mb-2 text-sm text-[#758696]">
+                    August 20, 2024 · {[14, 20, 9][index]} min read
+                  </p>
+                  <h3 className="text-xl font-semibold tracking-tight text-[#0c0407]">
+                    Here’s how to decorate your new home from scratch
+                  </h3>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="section-pad bg-[#f7f7f7]">
+          <div className="container-wide grid gap-10 lg:grid-cols-2">
+            <div>
+              <h2 className="heading-xl">Frequently Asked Questions</h2>
+            </div>
+            <FaqAccordion />
+          </div>
+        </section>
+
+        <section
+          id="contact"
+          className="section-pad relative overflow-hidden scroll-mt-[88px]"
+        >
+          <Image
+            src={ASSETS.footer}
+            alt=""
+            fill
+            className="object-cover opacity-20"
+          />
+          <div className="container-wide relative z-10 grid gap-10 lg:grid-cols-2">
+            <div>
+              <h2 className="heading-xl">Want to contact with us?</h2>
+            </div>
+            <ContactForm />
+          </div>
+        </section>
       </main>
-    </div>
+      <SiteFooter />
+    </>
   );
 }

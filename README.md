@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Realfy — Realtor / Broker Website + CRM
 
-## Getting Started
+Public marketing site inspired by [Realfy (Webflow)](https://realvy-real-estate.webflow.io), plus an admin CRM for leads, listings, categories, agents, and image uploads.
 
-First, run the development server:
+## Stack
+
+This project uses **Next.js** (not Vite). Next already includes React and ships with Tailwind. Vite would replace Next and break the CRM API routes, file uploads, and auth — so we keep Next for a single efficient full-stack app.
+
+| Layer | Package |
+|---|---|
+| Framework | Next.js 16 (Turbopack) |
+| UI | React 19 + Tailwind CSS 4 |
+| Smooth scroll | Lenis |
+| Validation | Zod |
+| Fonts | `next/font` (Inter + Outfit, `display: swap`) |
+| Images | `next/image` (AVIF/WebP) |
+
+## Quick start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Website: [http://localhost:3000](http://localhost:3000)
+- CRM dashboard: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
+- Default password: `admin123` (override with `ADMIN_PASSWORD`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy `.env.example` to `.env.local` to customize secrets.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## What’s included
 
-## Learn More
+### Public site
+- Home page matching the Realfy layout (hero, featured properties, categories, about, stats, process, agents marquee, testimonials, blog, FAQ, contact)
+- Properties listing + detail pages
+- Agents, About, Contact pages
+- Contact form creates CRM leads
 
-To learn more about Next.js, take a look at the following resources:
+### Dashboard CRM (`/dashboard`)
+- Overview metrics
+- **Leads CRM** — pipeline statuses (new → closed)
+- **Properties** — create/edit listings with images, categories, agents
+- **Categories** — manage property category tiles
+- **Image upload portal** — store files in `/public/uploads`
+- **Agents** — roster management
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Data
+- JSON store at `data/db.json` (auto-seeded on first run from the Realfy demo content)
+- Uploaded images live in `public/uploads/`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev      # development
+npm run build    # production build
+npm run start    # run production server
+```
