@@ -73,6 +73,7 @@ export function Hero({ headline, support }: HeroProps) {
           alt="Modern home exterior"
           fill
           priority
+          quality={90}
           sizes="100vw"
           className="hero-modern__image"
         />

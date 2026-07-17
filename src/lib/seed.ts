@@ -310,7 +310,7 @@ export const seedDatabase = (): Database => {
 export const ASSETS = {
   logo: `${BASE}/672b0cbffbb01b1ebb84e214_Realfy.svg`,
   footerLogo: `${BASE}/672b0c705f082c0c17a2c1dc_f-logo.svg`,
-  hero: "/hero-pool.jpg",
+  hero: "/hero-pool-hd.jpg",
   choose: `${BASE}/67160aef4db775dfa018cac7_choose-thumb-1.jpg`,
   footer: `${BASE}/67120964815745137dc8e366_footer-thumb-2.png`,
   process: [
