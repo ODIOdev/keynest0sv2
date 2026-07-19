@@ -2388,9 +2388,9 @@ a.filter-chip.is-active:hover {
   }
 }
 
-/* Keep property cards crisp on small screens — fade washes listing imagery */
+/* Disable scroll-away fades on small screens — they wash out content */
 @media (max-width: 899px) {
-  #properties .section-scroll-fade {
+  .section-scroll-fade {
     display: none !important;
   }
 }
