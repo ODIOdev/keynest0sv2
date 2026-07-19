@@ -101,12 +101,6 @@ function centerMapOnFirstPin(map: GoogleMap, pins: MapPin[]) {
   map.setZoom(DEFAULT_MAP_ZOOM);
 }
 
-declare global {
-  interface Window {
-    google?: GoogleMapsNamespace;
-  }
-}
-
 export function PropertiesMapHero({
   pins,
   focus,

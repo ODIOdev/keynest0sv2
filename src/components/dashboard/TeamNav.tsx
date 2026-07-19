@@ -10,7 +10,8 @@ export function TeamNav() {
   return (
     <nav className="settings-nav" aria-label="Team">
       {TEAM_NAV.map((item) => {
-        const active = item.exact
+        const exact = "exact" in item && item.exact;
+        const active = exact
           ? pathname === item.href
           : pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (

@@ -146,32 +146,34 @@ export function AgentTalkForm() {
               autoComplete="email"
             />
           </label>
-          <label className="field">
-            <span>Phone</span>
-            <input
-              name="phone"
-              type="tel"
-              required
-              inputMode="numeric"
-              autoComplete="tel"
-              placeholder="(555) 000-0000"
-              value={phone}
-              onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
-              pattern="\(\d{3}\) \d{3}-\d{4}"
-              title="Enter a 10-digit phone number"
-              maxLength={14}
-            />
-          </label>
-          <label className="field">
-            <span>Best time to connect</span>
-            <select name="bestTime" defaultValue="flexible">
-              <option value="flexible">Flexible</option>
-              <option value="mornings">Mornings</option>
-              <option value="afternoons">Afternoons</option>
-              <option value="evenings">Evenings</option>
-              <option value="weekends">Weekends</option>
-            </select>
-          </label>
+          <div className="agent-form__pair">
+            <label className="field">
+              <span>Phone</span>
+              <input
+                name="phone"
+                type="tel"
+                required
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="(555) 000-0000"
+                value={phone}
+                onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+                pattern="\(\d{3}\) \d{3}-\d{4}"
+                title="Enter a 10-digit phone number"
+                maxLength={14}
+              />
+            </label>
+            <label className="field">
+              <span>Best time to connect</span>
+              <select name="bestTime" defaultValue="flexible">
+                <option value="flexible">Flexible</option>
+                <option value="mornings">Mornings</option>
+                <option value="afternoons">Afternoons</option>
+                <option value="evenings">Evenings</option>
+                <option value="weekends">Weekends</option>
+              </select>
+            </label>
+          </div>
         </div>
         <div className="agent-form__pills" role="radiogroup" aria-label="Preferred contact">
           {CONTACT_METHODS.map((m) => (
@@ -224,30 +226,32 @@ export function AgentTalkForm() {
               onChange={setSecondaryLocation}
             />
           </label>
-          <label className="field">
-            <span>Timeline</span>
-            <select name="timeline" required defaultValue="">
-              <option value="" disabled>
-                Select timeline
-              </option>
-              <option value="asap">As soon as possible</option>
-              <option value="1-3-months">1–3 months</option>
-              <option value="3-6-months">3–6 months</option>
-              <option value="6-plus">6+ months</option>
-              <option value="exploring">Just exploring</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Household / movers</span>
-            <select name="movers" defaultValue="">
-              <option value="">Optional</option>
-              <option value="just-me">Just me</option>
-              <option value="couple">Couple</option>
-              <option value="family-small">Family (1–2 kids)</option>
-              <option value="family-large">Family (3+ kids)</option>
-              <option value="roommates">Roommates</option>
-            </select>
-          </label>
+          <div className="agent-form__pair">
+            <label className="field">
+              <span>Timeline</span>
+              <select name="timeline" required defaultValue="">
+                <option value="" disabled>
+                  Select timeline
+                </option>
+                <option value="asap">As soon as possible</option>
+                <option value="1-3-months">1–3 months</option>
+                <option value="3-6-months">3–6 months</option>
+                <option value="6-plus">6+ months</option>
+                <option value="exploring">Just exploring</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Household / movers</span>
+              <select name="movers" defaultValue="">
+                <option value="">Optional</option>
+                <option value="just-me">Just me</option>
+                <option value="couple">Couple</option>
+                <option value="family-small">Family (1–2 kids)</option>
+                <option value="family-large">Family (3+ kids)</option>
+                <option value="roommates">Roommates</option>
+              </select>
+            </label>
+          </div>
         </div>
       </section>
 
@@ -273,67 +277,73 @@ export function AgentTalkForm() {
           </div>
         </fieldset>
         <div className="agent-form__grid">
-          <label className="field">
-            <span>Min. bedrooms</span>
-            <select name="beds" defaultValue="">
-              <option value="">Any</option>
-              <option value="1">1+</option>
-              <option value="2">2+</option>
-              <option value="3">3+</option>
-              <option value="4">4+</option>
-              <option value="5">5+</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Min. bathrooms</span>
-            <select name="baths" defaultValue="">
-              <option value="">Any</option>
-              <option value="1">1+</option>
-              <option value="1.5">1.5+</option>
-              <option value="2">2+</option>
-              <option value="3">3+</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Budget min (USD)</span>
-            <input
-              name="budgetMin"
-              type="number"
-              min={0}
-              step={1000}
-              placeholder="250000"
-            />
-          </label>
-          <label className="field">
-            <span>Budget max (USD)</span>
-            <input
-              name="budgetMax"
-              type="number"
-              min={0}
-              step={1000}
-              placeholder="650000"
-            />
-          </label>
-          <label className="field">
-            <span>Financing</span>
-            <select name="financing" defaultValue="">
-              <option value="">Not sure yet</option>
-              <option value="cash">Cash</option>
-              <option value="mortgage">Mortgage</option>
-              <option value="lease">Lease / rental</option>
-              <option value="other">Other</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Pre-approved?</span>
-            <select name="preapproved" defaultValue="">
-              <option value="">Prefer not to say</option>
-              <option value="yes">Yes</option>
-              <option value="in-progress">In progress</option>
-              <option value="no">Not yet</option>
-              <option value="n-a">Not applicable</option>
-            </select>
-          </label>
+          <div className="agent-form__pair">
+            <label className="field">
+              <span>Min. bedrooms</span>
+              <select name="beds" defaultValue="">
+                <option value="">Any</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+                <option value="5">5+</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Min. bathrooms</span>
+              <select name="baths" defaultValue="">
+                <option value="">Any</option>
+                <option value="1">1+</option>
+                <option value="1.5">1.5+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+              </select>
+            </label>
+          </div>
+          <div className="agent-form__pair">
+            <label className="field">
+              <span>Budget min (USD)</span>
+              <input
+                name="budgetMin"
+                type="number"
+                min={0}
+                step={1000}
+                placeholder="250000"
+              />
+            </label>
+            <label className="field">
+              <span>Budget max (USD)</span>
+              <input
+                name="budgetMax"
+                type="number"
+                min={0}
+                step={1000}
+                placeholder="650000"
+              />
+            </label>
+          </div>
+          <div className="agent-form__pair">
+            <label className="field">
+              <span>Financing</span>
+              <select name="financing" defaultValue="">
+                <option value="">Not sure yet</option>
+                <option value="cash">Cash</option>
+                <option value="mortgage">Mortgage</option>
+                <option value="lease">Lease / rental</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Pre-approved?</span>
+              <select name="preapproved" defaultValue="">
+                <option value="">Prefer not to say</option>
+                <option value="yes">Yes</option>
+                <option value="in-progress">In progress</option>
+                <option value="no">Not yet</option>
+                <option value="n-a">Not applicable</option>
+              </select>
+            </label>
+          </div>
         </div>
       </section>
 

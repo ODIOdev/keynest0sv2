@@ -102,14 +102,14 @@ export function OnboardingProvider({
   useEffect(() => {
     if (!hydrated) return;
     if (isBusiness) return;
-    const businessOnly = new Set([
+    const businessOnly = new Set<string>([
       ONBOARDING.business,
       ONBOARDING.industry,
       ONBOARDING.plan,
       ONBOARDING.branding,
       ONBOARDING.team,
     ]);
-    if (businessOnly.has(pathname as (typeof ONBOARDING)[keyof typeof ONBOARDING])) {
+    if (businessOnly.has(pathname)) {
       router.replace(ONBOARDING.account);
     }
   }, [hydrated, isBusiness, pathname, router]);

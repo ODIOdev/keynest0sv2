@@ -2388,6 +2388,13 @@ a.filter-chip.is-active:hover {
   }
 }
 
+/* Keep property cards crisp on small screens — fade washes listing imagery */
+@media (max-width: 899px) {
+  #properties .section-scroll-fade {
+    display: none !important;
+  }
+}
+
 .hero-modern__content {
   position: relative;
   z-index: 3;
@@ -4433,6 +4440,18 @@ a.filter-chip.is-active:hover {
   flex-direction: column;
   gap: 8px;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dash-nav__bar {
+  display: contents;
+}
+
+.dash-nav__menu-btn {
+  display: none;
+}
+
+.dash-nav__drawer {
+  display: contents;
 }
 
 .dash-nav__brand {
@@ -7312,9 +7331,92 @@ a.filter-chip.is-active:hover {
   }
 
   .dash-nav {
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 60;
     height: auto;
     max-height: none;
+    overflow: visible;
+    padding: 12px 14px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 0;
+  }
+
+  .dash-nav__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .dash-nav__brand {
+    padding: 0;
+    min-width: 0;
+  }
+
+  .dash-nav__brand .kn-logo {
+    transform: scale(0.88);
+    transform-origin: left center;
+  }
+
+  .dash-nav__eyebrow {
+    display: none;
+  }
+
+  .dash-nav__menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+    max-width: min(58vw, 220px);
+    margin-left: auto;
+    padding: 9px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 560;
+    cursor: pointer;
+  }
+
+  .dash-nav__menu-btn-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dash-nav__menu-chevron {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+
+  .dash-nav.is-open .dash-nav__menu-chevron {
+    transform: rotate(180deg);
+  }
+
+  .dash-nav__drawer {
+    display: none;
+    margin-top: 12px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .dash-nav.is-open .dash-nav__drawer {
+    display: grid;
+    gap: 12px;
+  }
+
+  .dash-nav__groups {
+    gap: 14px;
+    flex: none;
+  }
+
+  .dash-nav__footer {
+    margin-top: 0;
   }
 
   .dash-top,
@@ -8381,6 +8483,18 @@ a.filter-chip.is-active:hover {
   gap: 14px;
 }
 
+/* Beds + baths share a row on small screens */
+.agent-form__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.agent-form__pair > .field {
+  min-width: 0;
+}
+
 @media (min-width: 640px) {
   .agent-form__grid {
     grid-template-columns: 1fr 1fr;
@@ -8388,6 +8502,11 @@ a.filter-chip.is-active:hover {
 
   .agent-form__span-2 {
     grid-column: 1 / -1;
+  }
+
+  /* Let fields join the parent 2-col grid on desktop */
+  .agent-form__pair {
+    display: contents;
   }
 }
 
@@ -8479,6 +8598,10 @@ a.filter-chip.is-active:hover {
 .agent-form .field input,
 .agent-form .field select,
 .agent-form .field textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border-radius: 12px;
   border-color: #e2e8f0;
   background: #f8fafc;
@@ -8524,6 +8647,180 @@ a.filter-chip.is-active:hover {
   margin: 0;
   font-size: 0.9rem;
   color: #b91c1c;
+}
+
+/* Talk-to-agent: compact shell that fits narrow viewports */
+@media (max-width: 639px) {
+  .agent-page {
+    overflow-x: clip;
+  }
+
+  .agent-page__hero {
+    padding: 32px 0 24px;
+  }
+
+  .agent-page .container-wide {
+    width: min(100% - 24px, 1400px);
+  }
+
+  .agent-page__title {
+    font-size: clamp(1.65rem, 7.2vw, 2.05rem);
+    margin-bottom: 12px;
+  }
+
+  .agent-page__lead {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .agent-page__body {
+    gap: 16px;
+    padding-block: 20px 48px;
+  }
+
+  .agent-page__steps {
+    padding: 6px 10px;
+    border-radius: 12px;
+  }
+
+  .agent-page__step {
+    padding: 8px 2px;
+    column-gap: 8px;
+  }
+
+  .agent-page__steps-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+  }
+
+  .agent-page__step-title {
+    font-size: 0.86rem;
+  }
+
+  .agent-page__step-copy {
+    font-size: 0.75rem;
+    max-width: none;
+  }
+
+  .agent-page__panel {
+    border-radius: 14px;
+    padding: 16px 12px 22px;
+  }
+
+  .agent-page__panel-head {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+  }
+
+  .agent-page__panel-head h2 {
+    font-size: 1.12rem;
+  }
+
+  .agent-page__panel-head p {
+    font-size: 0.85rem;
+  }
+
+  .agent-form {
+    gap: 20px;
+  }
+
+  .agent-form__section {
+    gap: 12px;
+    padding-bottom: 18px;
+  }
+
+  .agent-form__section-head {
+    grid-template-columns: 30px 1fr;
+    gap: 8px;
+  }
+
+  .agent-form__step {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 0.68rem;
+  }
+
+  .agent-form__section-title {
+    font-size: 0.95rem;
+  }
+
+  .agent-form__section-sub {
+    font-size: 0.8rem;
+  }
+
+  .agent-form__goals {
+    gap: 8px;
+  }
+
+  .agent-form__goal {
+    padding: 11px 8px;
+    border-radius: 12px;
+    min-width: 0;
+  }
+
+  .agent-form__goal-label {
+    font-size: 0.86rem;
+  }
+
+  .agent-form__goal-hint {
+    font-size: 0.68rem;
+  }
+
+  .agent-form__pair {
+    gap: 8px;
+  }
+
+  .agent-form__grid {
+    gap: 12px;
+  }
+
+  .agent-form__pills {
+    gap: 6px;
+  }
+
+  .agent-form__pill {
+    padding: 7px 11px;
+    font-size: 0.8rem;
+  }
+
+  .agent-form__checks {
+    gap: 6px;
+  }
+
+  .agent-form__check {
+    padding: 7px 10px;
+    font-size: 0.8rem;
+  }
+
+  .agent-form .field {
+    gap: 6px;
+  }
+
+  .agent-form .field input,
+  .agent-form .field select,
+  .agent-form .field textarea {
+    padding: 11px 12px;
+    border-radius: 10px;
+  }
+
+  .agent-form .field select {
+    padding-right: 36px;
+    background-position: right 10px center;
+    background-size: 14px;
+  }
+
+  .agent-form .field textarea {
+    min-height: 110px;
+  }
+
+  .agent-form__footer .btn-primary {
+    width: 100%;
+    justify-self: stretch;
+    justify-content: center;
+  }
 }
 
 /* Sell / property onboarding */

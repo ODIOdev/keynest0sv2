@@ -58,7 +58,9 @@ function PropertyResultsView({
   emptyMessage = "No properties matched your search.",
   filters,
 }: PropertyResultsProps & {
-  filters: ReturnType<typeof usePropertyFilters>;
+  filters:
+    | ReturnType<typeof usePropertyFilters>
+    | ReturnType<typeof usePropertyFiltersSynced>;
 }) {
   const view = showViewToggle ? filters.view : "cards";
 
