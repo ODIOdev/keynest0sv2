@@ -20,8 +20,16 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
     router.refresh();
   }
 
+  if (leads.length === 0) {
+    return (
+      <div className="dash-panel dash-panel--pad">
+        <p className="dash-empty">No leads yet. New inquiries will show up here.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="overflow-x-auto rounded-3xl bg-white">
+    <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
@@ -36,14 +44,22 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
           {leads.map((lead) => (
             <tr key={lead.id}>
               <td>
-                <div className="font-medium text-[#0c0407]">{lead.name}</div>
-                <div className="text-[#758696]">{lead.email}</div>
-                <div className="text-[#758696]">{lead.phone}</div>
+                <div className="font-medium text-[var(--dash-ink,#0c0407)]">
+                  {lead.name}
+                </div>
+                <div className="text-sm text-[var(--dash-muted,#64748b)]">
+                  {lead.email}
+                </div>
+                <div className="text-sm text-[var(--dash-muted,#64748b)]">
+                  {lead.phone}
+                </div>
               </td>
-              <td className="max-w-xs">{lead.message}</td>
+              <td className="max-w-xs text-[var(--dash-muted,#64748b)]">
+                {lead.message}
+              </td>
               <td>
                 <select
-                  className="rounded-lg border border-[#e8e8e8] px-2 py-1"
+                  className="rounded-lg border border-[var(--dash-border,#e2e8f0)] bg-white px-2 py-1.5 text-sm"
                   value={lead.status}
                   onChange={(e) =>
                     updateStatus(lead.id, e.target.value as Lead["status"])
@@ -56,7 +72,9 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
                   <option value="lost">Lost</option>
                 </select>
               </td>
-              <td>{lead.source}</td>
+              <td>
+                <span className="dash-badge">{lead.source}</span>
+              </td>
               <td>
                 <button
                   type="button"

@@ -13,6 +13,7 @@ export const config = {
     "/forgot-password",
     "/reset-password",
     "/onboarding",
-    "/auth/callback",
+    "/onboarding/:path*",
+    "/auth/:path*",
   ],
 };

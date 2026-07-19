@@ -6,6 +6,7 @@ export type Category = {
   slug: string;
   description: string;
   image: string;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -18,9 +19,13 @@ export type Property = {
   address: string;
   city: string;
   state: string;
+  zip: string;
   price: number;
   listingType: ListingType;
   categoryId: string | null;
+  tagIds: string[];
+  lat: number | null;
+  lng: number | null;
   bedrooms: number;
   bathrooms: number;
   parking: number;
@@ -68,8 +73,19 @@ export type MediaAsset = {
   createdAt: string;
 };
 
+export type Tag = {
+  id: string;
+  name: string;
+  color: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type SiteSettings = {
   brandName: string;
+  /** Public site logo URL (header, hero, etc.). Empty = text wordmark. */
+  brandLogo: string;
   tagline: string;
   heroTitle: string;
   aboutHeading: string;
@@ -84,5 +100,6 @@ export type Database = {
   agents: Agent[];
   leads: Lead[];
   media: MediaAsset[];
+  tags: Tag[];
   settings: SiteSettings;
 };

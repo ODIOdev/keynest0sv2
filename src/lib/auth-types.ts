@@ -42,3 +42,17 @@ export type Membership = {
   role: AppRole;
   created_at: string;
 };
+
+export function roleLabel(role: AppRole) {
+  const labels: Record<AppRole, string> = {
+    platform_admin: "Platform administrator",
+    owner: "Business owner",
+    manager: "Manager",
+    employee: "Employee",
+    realtor: "Realtor",
+    tax_preparer: "Tax preparer",
+    assistant: "Assistant",
+    customer: "Customer",
+  };
+  return labels[role];
+}

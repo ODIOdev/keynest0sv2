@@ -8,10 +8,11 @@ export default async function LeadsPage() {
 
   return (
     <DashboardFrame
-      title="Leads CRM"
+      title="Leads"
+      description="Track inquiries from contact, sell, and property pages."
       action={
-        <Link href="/" className="btn-secondary">
-          Website contact form feeds here
+        <Link href="/contact" className="btn-secondary">
+          Public contact form
         </Link>
       }
     >

@@ -16,7 +16,6 @@ export default function AboutPage() {
       <main className="section-pad">
         <div className="container-wide grid items-center gap-10 lg:grid-cols-2">
           <div>
-            <p className="eyebrow mb-4">About us</p>
             <h1 className="heading-xl mb-5">{settings.aboutHeading}</h1>
             <p className="mb-8 text-lg leading-relaxed text-[#758696]">
               {settings.aboutText}

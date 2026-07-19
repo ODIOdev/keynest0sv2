@@ -35,8 +35,8 @@ export function AgentManager({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-      <form onSubmit={onSubmit} className="space-y-3 rounded-3xl bg-white p-5">
-        <h2 className="text-lg font-semibold">Add agent</h2>
+      <form onSubmit={onSubmit} className="dash-panel dash-panel--pad space-y-3">
+        <h2 className="dash-panel__title">Add agent</h2>
         {(
           [
             ["name", "Name"],
@@ -68,10 +68,10 @@ export function AgentManager({
               <button
                 key={url}
                 type="button"
-                className="rounded-lg border px-2 py-1 text-xs"
+                className="rounded-lg border border-[var(--dash-border,#e2e8f0)] px-2 py-1 text-xs text-[var(--dash-muted,#64748b)]"
                 onClick={() => setForm({ ...form, image: url })}
               >
-                Use {url}
+                Use {url.split("/").pop()}
               </button>
             ))}
           </div>
@@ -81,7 +81,7 @@ export function AgentManager({
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-3xl bg-white">
+      <div className="table-wrap">
         <table className="table">
           <thead>
             <tr>
@@ -94,11 +94,13 @@ export function AgentManager({
           <tbody>
             {agents.map((agent) => (
               <tr key={agent.id}>
-                <td>{agent.name}</td>
+                <td className="font-medium">{agent.name}</td>
                 <td>{agent.title}</td>
                 <td>
                   <div>{agent.email}</div>
-                  <div>{agent.phone}</div>
+                  <div className="text-sm text-[var(--dash-muted,#64748b)]">
+                    {agent.phone}
+                  </div>
                 </td>
                 <td>
                   <DeleteAgentButton id={agent.id} />

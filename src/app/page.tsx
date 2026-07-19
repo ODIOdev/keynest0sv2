@@ -1,11 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ContactForm } from "@/components/site/ContactForm";
-import { FaqAccordion } from "@/components/site/FaqAccordion";
 import { Hero } from "@/components/site/Hero";
-import { PropertyCard } from "@/components/site/PropertyCard";
+import { HomeCategoryCarousel } from "@/components/site/HomeCategoryCarousel";
+import { PropertyResults } from "@/components/site/PropertyResults";
 import { SiteFooter, SiteHeader } from "@/components/site/Shell";
-import { listAgents, listCategories, listProperties, getSettings } from "@/lib/db";
+import {
+  listAgents,
+  listCategories,
+  listProperties,
+  listTags,
+  getSettings,
+} from "@/lib/db";
 import { ASSETS } from "@/lib/seed";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +22,7 @@ export default function HomePage() {
     6,
   );
   const categories = listCategories();
+  const tags = listTags();
   const agents = listAgents();
 
   return (
@@ -38,11 +44,13 @@ export default function HomePage() {
                 Explore all
               </Link>
             </div>
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {properties.map((property) => (
-                <PropertyCard key={property.id} property={property} />
-              ))}
-            </div>
+            <PropertyResults
+              properties={properties}
+              categories={categories}
+              tags={tags}
+              showViewToggle={false}
+              emptyMessage="No featured properties yet."
+            />
           </div>
         </section>
 
@@ -74,34 +82,7 @@ export default function HomePage() {
             <div className="mb-10 max-w-2xl">
               <h2 className="heading-xl">Start your journey to your ideal property</h2>
             </div>
-            <div className="grid gap-6 md:grid-cols-3">
-              {categories.map((category) => (
-                <Link
-                  key={category.id}
-                  href={`/properties?category=${category.slug}`}
-                  className="group overflow-hidden rounded-[24px]"
-                >
-                  <div className="relative aspect-[4/5]">
-                    <Image
-                      src={category.image}
-                      alt={category.name}
-                      fill
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-6 text-white">
-                      <h3 className="mb-2 text-2xl font-semibold tracking-tight">
-                        {category.name}
-                      </h3>
-                      <p className="mb-4 text-sm text-white/80">{category.description}</p>
-                      <span className="text-sm font-medium underline underline-offset-4">
-                        Explore Now
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <HomeCategoryCarousel categories={categories} />
           </div>
         </section>
 
@@ -135,13 +116,8 @@ export default function HomePage() {
 
         <section className="section-pad">
           <div className="container-wide">
-            <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 className="heading-xl">The numbers behind our success</h2>
-              </div>
-              <Link href="/contact" className="btn-secondary">
-                Contact us
-              </Link>
+            <div className="mb-10">
+              <h2 className="heading-xl">The numbers behind our success</h2>
             </div>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               {settings.stats.map((stat) => (
@@ -336,33 +312,6 @@ export default function HomePage() {
                 </article>
               ))}
             </div>
-          </div>
-        </section>
-
-        <section className="section-pad bg-[#f7f7f7]">
-          <div className="container-wide grid gap-10 lg:grid-cols-2">
-            <div>
-              <h2 className="heading-xl">Frequently Asked Questions</h2>
-            </div>
-            <FaqAccordion />
-          </div>
-        </section>
-
-        <section
-          id="contact"
-          className="section-pad relative overflow-hidden scroll-mt-[88px]"
-        >
-          <Image
-            src={ASSETS.footer}
-            alt=""
-            fill
-            className="object-cover opacity-20"
-          />
-          <div className="container-wide relative z-10 grid gap-10 lg:grid-cols-2">
-            <div>
-              <h2 className="heading-xl">Want to contact with us?</h2>
-            </div>
-            <ContactForm />
           </div>
         </section>
       </main>

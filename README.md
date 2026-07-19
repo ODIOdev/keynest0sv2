@@ -24,7 +24,8 @@ npm run dev
 
 - Website: [http://localhost:3000](http://localhost:3000)
 - CRM dashboard: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
-- Default password: `admin123` (override with `ADMIN_PASSWORD`)
+- Auth: [http://localhost:3000/auth/sign-in](http://localhost:3000/auth/sign-in)
+- Master admin: username `admin` / password `12345678` (override with `ADMIN_PASSWORD`, re-run `npm run seed:admin`)
 
 Copy `.env.example` to `.env.local` to customize secrets.
 

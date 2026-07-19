@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { AUTH } from "@/lib/auth-routes";
 
 /** Legacy path — middleware also redirects here. */
 export default function LegacyLoginPage() {
-  redirect("/sign-in");
+  redirect(AUTH.signIn);
 }

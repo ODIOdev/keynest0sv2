@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
+import { BrandProvider } from "@/components/site/BrandProvider";
 import { SmoothScrollProvider } from "@/components/site/SmoothScrollProvider";
+import { ChatProvider } from "@/components/site/ChatWidget";
+import { SitePreloader } from "@/components/site/SitePreloader";
+import { getSettings } from "@/lib/db";
 import "./globals.css";
 
 const inter = Inter({
@@ -31,10 +35,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const settings = getSettings();
+
   return (
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable} antialiased`}>
-        <SmoothScrollProvider>{children}</SmoothScrollProvider>
+        <BrandProvider
+          brandName={settings.brandName}
+          brandLogo={settings.brandLogo || null}
+        >
+          <SmoothScrollProvider>
+            <SitePreloader />
+            <ChatProvider>{children}</ChatProvider>
+          </SmoothScrollProvider>
+        </BrandProvider>
       </body>
     </html>
   );

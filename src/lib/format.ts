@@ -14,7 +14,18 @@ export function formatPrice(property: Pick<Property, "price" | "listingType">) {
 }
 
 export function formatAddress(
-  property: Pick<Property, "address" | "city" | "state">,
+  property: Pick<Property, "address" | "city" | "state" | "zip">,
 ) {
-  return `${property.address}, ${property.city}, ${property.state}`;
+  const cityState = [property.city, property.state].filter(Boolean).join(", ");
+  const region = [cityState, property.zip].filter(Boolean).join(" ");
+  return [property.address, region].filter(Boolean).join(", ");
+}
+
+/** Formats US phone input as (555) 000-0000 while typing. */
+export function formatPhoneInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (digits.length === 0) return "";
+  if (digits.length < 4) return `(${digits}`;
+  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }

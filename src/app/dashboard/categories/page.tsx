@@ -1,49 +1,80 @@
 import Link from "next/link";
-import Image from "next/image";
+import { CategoryCarousel } from "@/components/dashboard/CategoryCarousel";
+import { CategoryUndoToast } from "@/components/dashboard/CategoryUndoToast";
 import { DashboardFrame } from "@/components/dashboard/DashboardFrame";
-import { DeleteCategoryButton } from "@/components/dashboard/DeleteButtons";
-import { listCategories } from "@/lib/db";
+import { TagsManager } from "@/components/dashboard/TagsManager";
+import { listCategories, listProperties, listTags } from "@/lib/db";
 
 export default async function CategoriesAdminPage() {
   const categories = listCategories();
+  const tags = listTags();
+  const properties = listProperties();
 
   return (
     <DashboardFrame
-      title="Property categories"
+      title="Categories"
+      description="Property types, cover imagery, and tags that organize your catalog."
       action={
         <Link href="/dashboard/categories/new" className="btn-primary">
           Add category
         </Link>
       }
     >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {categories.map((category) => (
-          <article key={category.id} className="overflow-hidden rounded-3xl bg-white">
-            {category.image ? (
-              <Image
-                src={category.image}
-                alt={category.name}
-                width={600}
-                height={360}
-                className="aspect-[16/10] w-full object-cover"
-              />
-            ) : null}
-            <div className="space-y-2 p-5">
-              <h2 className="text-lg font-semibold">{category.name}</h2>
-              <p className="text-sm text-[#758696]">{category.description}</p>
-              <div className="flex gap-3 pt-2">
-                <Link
-                  href={`/dashboard/categories/${category.id}`}
-                  className="text-sm underline"
-                >
-                  Edit
-                </Link>
-                <DeleteCategoryButton id={category.id} />
-              </div>
+      <div className="cat-page">
+        <div className="cat-page__stats">
+          <div className="cat-page__stat">
+            <p className="cat-page__stat-value">{categories.length}</p>
+            <p className="cat-page__stat-label">Categories</p>
+          </div>
+          <div className="cat-page__stat">
+            <p className="cat-page__stat-value">{tags.length}</p>
+            <p className="cat-page__stat-label">Platform tags</p>
+          </div>
+          <div className="cat-page__stat">
+            <p className="cat-page__stat-value">
+              {categories.filter((c) => c.image).length}
+            </p>
+            <p className="cat-page__stat-label">With cover art</p>
+          </div>
+        </div>
+
+        <section className="cat-page__section">
+          <header className="cat-page__section-head">
+            <div>
+              <h2 className="cat-page__section-title">Property categories</h2>
+              <p className="cat-page__section-sub">
+                Drag cards to organize how segments appear on the site.
+              </p>
             </div>
-          </article>
-        ))}
+          </header>
+
+          {categories.length === 0 ? (
+            <div className="cat-page__empty">
+              <p>No categories yet.</p>
+              <Link href="/dashboard/categories/new" className="btn-primary">
+                Create your first category
+              </Link>
+            </div>
+          ) : (
+            <CategoryCarousel categories={categories} />
+          )}
+        </section>
+
+        <section className="cat-page__section cat-page__section--tags">
+          <header className="cat-page__section-head">
+            <div>
+              <h2 className="cat-page__section-title">Tags</h2>
+              <p className="cat-page__section-sub">
+                Lightweight labels for listings, leads, and campaigns.
+              </p>
+            </div>
+          </header>
+          <div className="cat-page__tags-panel">
+            <TagsManager tags={tags} properties={properties} />
+          </div>
+        </section>
       </div>
+      <CategoryUndoToast />
     </DashboardFrame>
   );
 }

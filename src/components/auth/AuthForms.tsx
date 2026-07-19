@@ -5,6 +5,10 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { AccountType } from "@/lib/auth-types";
+import { AUTH } from "@/lib/auth-routes";
+import { resolveSignInEmail } from "@/lib/master-admin";
+import { AppleLogo, GoogleLogo } from "@/components/auth/OAuthLogos";
+import { KeynestLogo } from "@/components/site/KeynestLogo";
 
 const accountTypes: { value: AccountType; label: string; hint: string }[] = [
   {
@@ -29,7 +33,6 @@ export function SignUpForm() {
   const [accountType, setAccountType] = useState<AccountType>("business");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,7 +56,7 @@ export function SignUpForm() {
       email,
       password,
       options: {
-        emailRedirectTo: `${origin}/auth/callback?next=/onboarding`,
+        emailRedirectTo: `${origin}${AUTH.callback}?next=/onboarding`,
         data: {
           full_name: fullName,
           account_type: accountType,
@@ -67,31 +70,16 @@ export function SignUpForm() {
       return;
     }
 
-    setSent(true);
-    router.refresh();
-  }
-
-  if (sent) {
-    return (
-      <div className="auth-card space-y-3">
-        <p className="text-sm uppercase tracking-wide text-[#758696]">KeyNestOS</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-[#0c0407]">
-          Check your email
-        </h1>
-        <p className="text-[#758696]">
-          We sent a verification link. After verifying, you&apos;ll finish onboarding.
-        </p>
-        <Link href="/sign-in" className="btn-primary inline-flex">
-          Back to sign in
-        </Link>
-      </div>
+    router.push(
+      `${AUTH.verifyEmail}?email=${encodeURIComponent(email)}`,
     );
+    router.refresh();
   }
 
   return (
     <form onSubmit={onSubmit} className="auth-card space-y-4">
       <div>
-        <p className="text-sm uppercase tracking-wide text-[#758696]">KeyNestOS</p>
+        <KeynestLogo size="sm" className="mb-1 inline-flex" />
         <h1 className="text-3xl font-semibold tracking-tight text-[#0c0407]">
           Create account
         </h1>
@@ -157,7 +145,7 @@ export function SignUpForm() {
 
       <p className="text-center text-sm text-[#758696]">
         Already have an account?{" "}
-        <Link href="/sign-in" className="underline">
+        <Link href={AUTH.signIn} className="underline">
           Sign in
         </Link>
       </p>
@@ -178,8 +166,9 @@ export function SignInForm() {
     setLoading(true);
     setError("");
     const form = new FormData(e.currentTarget);
-    const email = String(form.get("email") || "").trim();
+    const identifier = String(form.get("email") || "").trim();
     const password = String(form.get("password") || "");
+    const email = resolveSignInEmail(identifier);
 
     const supabase = createClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -212,7 +201,7 @@ export function SignInForm() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        redirectTo: `${origin}${AUTH.callback}?next=${encodeURIComponent(next)}`,
       },
     });
     if (oauthError) setError(oauthError.message);
@@ -221,15 +210,20 @@ export function SignInForm() {
   return (
     <form onSubmit={onSubmit} className="auth-card space-y-4">
       <div>
-        <p className="text-sm uppercase tracking-wide text-[#758696]">KeyNestOS</p>
+        <KeynestLogo size="sm" className="mb-1 inline-flex" />
         <h1 className="text-3xl font-semibold tracking-tight text-[#0c0407]">
           Sign in
         </h1>
       </div>
 
       <label className="field">
-        <span>Email</span>
-        <input name="email" type="email" required placeholder="you@company.com" />
+        <span>Email or username</span>
+        <input
+          name="email"
+          required
+          autoComplete="username"
+          placeholder="admin or you@company.com"
+        />
       </label>
       <label className="field">
         <span>Password</span>
@@ -245,7 +239,7 @@ export function SignInForm() {
           />
           Remember this device
         </label>
-        <Link href="/forgot-password" className="text-[#758696] underline">
+        <Link href={AUTH.forgotPassword} className="text-[#758696] underline">
           Forgot password?
         </Link>
       </div>
@@ -256,26 +250,33 @@ export function SignInForm() {
         {loading ? "Signing in..." : "Sign in"}
       </button>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={() => oauth("google")}
-          className="btn-secondary w-full"
-        >
-          Continue with Google
-        </button>
-        <button
-          type="button"
-          onClick={() => oauth("apple")}
-          className="btn-secondary w-full"
-        >
-          Continue with Apple
-        </button>
+      <div className="auth-oauth" aria-label="Sign in with a provider">
+        <div className="auth-oauth__divider">
+          <span>or continue with</span>
+        </div>
+        <div className="auth-oauth__stack">
+          <button
+            type="button"
+            onClick={() => oauth("google")}
+            className="auth-oauth__btn auth-oauth__btn--google"
+          >
+            <GoogleLogo />
+            <span>Continue with Google</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => oauth("apple")}
+            className="auth-oauth__btn auth-oauth__btn--apple"
+          >
+            <AppleLogo />
+            <span>Continue with Apple</span>
+          </button>
+        </div>
       </div>
 
       <p className="text-center text-sm text-[#758696]">
         New here?{" "}
-        <Link href="/sign-up" className="underline">
+        <Link href={AUTH.signUp} className="underline">
           Create an account
         </Link>
       </p>
@@ -297,7 +298,7 @@ export function ForgotPasswordForm() {
     const supabase = createClient();
     const origin = window.location.origin;
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/auth/callback?next=/reset-password`,
+      redirectTo: `${origin}${AUTH.callback}?next=${AUTH.resetPassword}`,
     });
     setLoading(false);
     if (resetError) {
@@ -316,7 +317,7 @@ export function ForgotPasswordForm() {
         <p className="text-[#758696]">
           Check your inbox for a link to create a new password.
         </p>
-        <Link href="/sign-in" className="btn-primary inline-flex">
+        <Link href={AUTH.signIn} className="btn-primary inline-flex">
           Return to sign in
         </Link>
       </div>
@@ -326,7 +327,7 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={onSubmit} className="auth-card space-y-4">
       <div>
-        <p className="text-sm uppercase tracking-wide text-[#758696]">KeyNestOS</p>
+        <KeynestLogo size="sm" className="mb-1 inline-flex" />
         <h1 className="text-3xl font-semibold tracking-tight text-[#0c0407]">
           Forgot password
         </h1>
@@ -343,7 +344,7 @@ export function ForgotPasswordForm() {
         {loading ? "Sending..." : "Send reset email"}
       </button>
       <p className="text-center text-sm text-[#758696]">
-        <Link href="/sign-in" className="underline">
+        <Link href={AUTH.signIn} className="underline">
           Back to sign in
         </Link>
       </p>
@@ -376,14 +377,14 @@ export function ResetPasswordForm() {
       setError(updateError.message);
       return;
     }
-    router.push("/sign-in");
+    router.push(AUTH.signIn);
     router.refresh();
   }
 
   return (
     <form onSubmit={onSubmit} className="auth-card space-y-4">
       <div>
-        <p className="text-sm uppercase tracking-wide text-[#758696]">KeyNestOS</p>
+        <KeynestLogo size="sm" className="mb-1 inline-flex" />
         <h1 className="text-3xl font-semibold tracking-tight text-[#0c0407]">
           Create new password
         </h1>

@@ -1,10 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { Property } from "@/lib/types";
+import type { Property, Tag } from "@/lib/types";
 import { formatAddress, formatPrice } from "@/lib/format";
+import { displayTagsForProperty } from "@/lib/property-tags";
 
-export function PropertyCard({ property }: { property: Property }) {
+export function PropertyCard({
+  property,
+  tags: allTags,
+}: {
+  property: Property;
+  tags: Tag[];
+}) {
   const price = formatPrice(property);
+  const tags = displayTagsForProperty(property, allTags);
+
   return (
     <article className="property-card fade-up">
       <Link href={`/properties/${property.slug}`} className="media relative block">
@@ -15,9 +24,23 @@ export function PropertyCard({ property }: { property: Property }) {
           height={600}
           className="h-full w-full object-cover"
         />
-        <span className="badge absolute left-3 top-3 bg-white/95">
-          {property.listingType === "rent" ? "Rent" : "Buy"}
-        </span>
+        <div className="property-card__tags">
+          {tags.length > 0 ? (
+            tags.map((tag) => (
+              <span
+                key={tag.id}
+                className="property-card__tag"
+                style={{ backgroundColor: tag.color }}
+              >
+                {tag.name}
+              </span>
+            ))
+          ) : (
+            <span className="property-card__tag property-card__tag--fallback">
+              {property.listingType === "rent" ? "Rent" : "Buy"}
+            </span>
+          )}
+        </div>
       </Link>
       <div className="space-y-2">
         <div className="flex items-end gap-1">

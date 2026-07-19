@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { AppRole, Profile } from "@/lib/auth-types";
+import type { Profile } from "@/lib/auth-types";
+import { AUTH } from "@/lib/auth-routes";
 
 export type { AppRole, AccountType, Profile, Organization, Membership } from "@/lib/auth-types";
+export { roleLabel } from "@/lib/auth-types";
 
 export async function getUser() {
   const supabase = await createClient();
@@ -33,7 +35,7 @@ export async function isAuthenticated() {
 export async function requireUser(next = "/dashboard") {
   const user = await getUser();
   if (!user) {
-    redirect(`/sign-in?next=${encodeURIComponent(next)}`);
+    redirect(`${AUTH.signIn}?next=${encodeURIComponent(next)}`);
   }
   return user;
 }
@@ -58,18 +60,4 @@ export async function getMemberships() {
     .eq("user_id", user.id);
 
   return data ?? [];
-}
-
-export function roleLabel(role: AppRole) {
-  const labels: Record<AppRole, string> = {
-    platform_admin: "Platform administrator",
-    owner: "Business owner",
-    manager: "Manager",
-    employee: "Employee",
-    realtor: "Realtor",
-    tax_preparer: "Tax preparer",
-    assistant: "Assistant",
-    customer: "Customer",
-  };
-  return labels[role];
 }

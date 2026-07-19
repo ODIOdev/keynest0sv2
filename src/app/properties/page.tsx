@@ -1,7 +1,8 @@
-import Link from "next/link";
-import { PropertyCard } from "@/components/site/PropertyCard";
+import { PropertiesMapHero } from "@/components/site/PropertiesMapHero";
+import { PropertyResults } from "@/components/site/PropertyResults";
 import { SiteFooter, SiteHeader } from "@/components/site/Shell";
-import { listCategories, listProperties } from "@/lib/db";
+import { listCategories, listProperties, listTags } from "@/lib/db";
+import { propertiesToPins } from "@/lib/geo";
 import type { Property } from "@/lib/types";
 
 export const metadata = { title: "Properties" };
@@ -16,6 +17,10 @@ export default async function PropertiesPage({
     q?: string;
     beds?: string;
     baths?: string;
+    sqft?: string;
+    psf?: string;
+    lat?: string;
+    lng?: string;
   }>;
 }) {
   const {
@@ -24,13 +29,26 @@ export default async function PropertiesPage({
     q,
     beds,
     baths,
+    sqft,
+    psf,
+    lat: latParam,
+    lng: lngParam,
   } = await searchParams;
   const categories = listCategories();
+  const tags = listTags();
   const category = categories.find((c) => c.slug === categorySlug);
   const listingType =
     type === "rent" || type === "sell" ? (type as Property["listingType"]) : undefined;
   const bedCount = beds ? Number(beds) : undefined;
   const bathCount = baths ? Number(baths) : undefined;
+  const sqftCount = sqft ? Number(sqft) : undefined;
+  const psfCount = psf ? Number(psf) : undefined;
+  const focusLat = latParam ? Number(latParam) : NaN;
+  const focusLng = lngParam ? Number(lngParam) : NaN;
+  const mapFocus =
+    Number.isFinite(focusLat) && Number.isFinite(focusLng)
+      ? { lat: focusLat, lng: focusLng, label: q?.trim() || "Search location" }
+      : null;
 
   const properties = listProperties({
     status: "published",
@@ -39,6 +57,8 @@ export default async function PropertiesPage({
     q: q?.trim() || undefined,
     beds: Number.isFinite(bedCount) ? bedCount : undefined,
     baths: Number.isFinite(bathCount) ? bathCount : undefined,
+    sqft: Number.isFinite(sqftCount) ? sqftCount : undefined,
+    psf: Number.isFinite(psfCount) ? psfCount : undefined,
   });
 
   const title = category
@@ -51,59 +71,24 @@ export default async function PropertiesPage({
           ? `Results for “${q}”`
           : "All properties";
 
+  const pins = propertiesToPins(properties);
+
   return (
     <>
       <SiteHeader />
-      <main className="section-pad">
-        <div className="container-wide">
-          <h1 className="heading-xl mb-8">{title}</h1>
-          <div className="mb-10 flex flex-wrap gap-3">
-            <Link
-              href="/properties"
-              className={`rounded-full border px-4 py-2 text-sm ${
-                !category && !listingType ? "bg-[#0c0407] text-white" : "border-[#e8e8e8]"
-              }`}
-            >
-              All
-            </Link>
-            <Link
-              href="/properties?type=sell"
-              className={`rounded-full border px-4 py-2 text-sm ${
-                listingType === "sell" ? "bg-[#0c0407] text-white" : "border-[#e8e8e8]"
-              }`}
-            >
-              Buy
-            </Link>
-            <Link
-              href="/properties?type=rent"
-              className={`rounded-full border px-4 py-2 text-sm ${
-                listingType === "rent" ? "bg-[#0c0407] text-white" : "border-[#e8e8e8]"
-              }`}
-            >
-              Rent
-            </Link>
-            {categories.map((c) => (
-              <Link
-                key={c.id}
-                href={`/properties?category=${c.slug}`}
-                className={`rounded-full border px-4 py-2 text-sm ${
-                  category?.id === c.id
-                    ? "bg-[#0c0407] text-white"
-                    : "border-[#e8e8e8]"
-                }`}
-              >
-                {c.name}
-              </Link>
-            ))}
+      <main>
+        <PropertiesMapHero pins={pins} focus={mapFocus} />
+
+        <div className="properties-page__list">
+          <div className="container-wide">
+            <h1 className="heading-xl mb-8">{title}</h1>
+            <PropertyResults
+              properties={properties}
+              categories={categories}
+              tags={tags}
+              syncUrlType
+            />
           </div>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {properties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
-            ))}
-          </div>
-          {properties.length === 0 ? (
-            <p className="mt-8 text-[#758696]">No properties matched your search.</p>
-          ) : null}
         </div>
       </main>
       <SiteFooter />

@@ -1,19 +1,100 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { KeynestLogo } from "@/components/site/KeynestLogo";
 import { HashScroll, SiteNav, ScrollLink } from "@/components/site/SmoothNav";
+import { createClient } from "@/lib/supabase/client";
 
 const FOOTER_LINKS = [
   { href: "/#home", label: "Home" },
-  { href: "/#about", label: "About Us" },
-  { href: "/#properties", label: "Properties" },
-  { href: "/#properties", label: "Buy" },
-  { href: "/#properties", label: "Rent" },
-  { href: "/#contact", label: "Sell" },
-  { href: "/#contact", label: "Contact" },
+  { href: "/about", label: "About" },
+  { href: "/properties", label: "Properties" },
+  { href: "/sell", label: "Sell" },
+  { href: "/contact", label: "Contact" },
 ];
+
+function HeaderAuthActions({ onNavigate }: { onNavigate?: () => void }) {
+  const router = useRouter();
+  const [authed, setAuthed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let mounted = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted) setAuthed(Boolean(data.user));
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthed(Boolean(session?.user));
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  async function logout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setAuthed(false);
+    onNavigate?.();
+    router.refresh();
+    router.push("/");
+  }
+
+  if (authed === null) {
+    return <div className="site-header__auth" aria-hidden />;
+  }
+
+  if (authed) {
+    return (
+      <div className="site-header__auth">
+        <Link
+          href="/dashboard"
+          className="site-header__text-btn"
+          onClick={onNavigate}
+        >
+          Admin
+        </Link>
+        <span className="site-header__auth-sep" aria-hidden>
+          |
+        </span>
+        <button
+          type="button"
+          className="site-header__text-btn"
+          onClick={() => void logout()}
+        >
+          Logout
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="site-header__auth">
+      <Link
+        href="/auth/sign-in"
+        className="site-header__signin"
+        onClick={onNavigate}
+      >
+        Sign in
+      </Link>
+      <Link
+        href="/auth/sign-up"
+        className="site-header__signup"
+        onClick={onNavigate}
+      >
+        Sign up
+      </Link>
+    </div>
+  );
+}
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
@@ -30,9 +111,12 @@ export function SiteHeader() {
           <KeynestLogo size="md" />
         </ScrollLink>
 
-        <SiteNav className="site-header__nav" />
+        <Suspense fallback={<nav className="site-header__nav" aria-hidden />}>
+          <SiteNav className="site-header__nav" />
+        </Suspense>
 
         <div className="site-header__actions">
+          <HeaderAuthActions />
           <button
             type="button"
             className="site-header__menu-btn"
@@ -49,10 +133,13 @@ export function SiteHeader() {
 
       {open ? (
         <div className="site-header__drawer">
-          <SiteNav
-            className="site-header__drawer-nav"
-            onNavigate={() => setOpen(false)}
-          />
+          <Suspense fallback={null}>
+            <SiteNav
+              className="site-header__drawer-nav"
+              includeHome
+              onNavigate={() => setOpen(false)}
+            />
+          </Suspense>
         </div>
       ) : null}
     </header>
@@ -69,55 +156,46 @@ export function SiteFooter() {
             Curated homes, trusted agents, and a clearer path from first tour to
             keys — built for modern brokers and buyers.
           </p>
-          <div className="flex flex-col items-start gap-3">
-            <ScrollLink href="/#contact" className="btn-white">
-              Contact us
-            </ScrollLink>
-            <Link
-              href="/sign-in"
-              className="text-sm text-white/55 transition-colors hover:text-white"
-            >
-              Sign in
-            </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-8 md:contents">
+          <div>
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide">Pages</h4>
+            <ul className="space-y-3 text-sm text-white/70">
+              {FOOTER_LINKS.map((l) => (
+                <li key={l.label}>
+                  {l.href.startsWith("/#") ? (
+                    <ScrollLink href={l.href} className="hover:text-white">
+                      {l.label}
+                    </ScrollLink>
+                  ) : (
+                    <Link href={l.href} className="hover:text-white">
+                      {l.label}
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-        <div>
-          <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide">Pages</h4>
-          <ul className="space-y-3 text-sm text-white/70">
-            {FOOTER_LINKS.map((l) => (
-              <li key={l.label}>
-                {l.href.startsWith("/#") ? (
-                  <ScrollLink href={l.href} className="hover:text-white">
-                    {l.label}
-                  </ScrollLink>
-                ) : (
-                  <Link href={l.href} className="hover:text-white">
-                    {l.label}
-                  </Link>
-                )}
+          <div>
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide">CMS</h4>
+            <ul className="space-y-3 text-sm text-white/70">
+              <li>
+                <ScrollLink href="/#properties">Properties</ScrollLink>
               </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide">CMS</h4>
-          <ul className="space-y-3 text-sm text-white/70">
-            <li>
-              <ScrollLink href="/#properties">Properties</ScrollLink>
-            </li>
-            <li>
-              <ScrollLink href="/#properties">Buy</ScrollLink>
-            </li>
-            <li>
-              <ScrollLink href="/#properties">Rent</ScrollLink>
-            </li>
-            <li>
-              <ScrollLink href="/#contact">Sell</ScrollLink>
-            </li>
-            <li>
-              <Link href="/dashboard/properties">Upload portal</Link>
-            </li>
-          </ul>
+              <li>
+                <Link href="/properties?type=sell">Buy</Link>
+              </li>
+              <li>
+                <Link href="/properties?type=rent">Rent</Link>
+              </li>
+              <li>
+                <Link href="/sell">Sell</Link>
+              </li>
+              <li>
+                <Link href="/dashboard/properties">Upload portal</Link>
+              </li>
+            </ul>
+          </div>
         </div>
         <div>
           <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide">Social</h4>
@@ -129,8 +207,18 @@ export function SiteFooter() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-white/10 py-5 text-center text-sm text-white/50">
-        © KeyNestOS. All rights reserved.
+      <div className="border-t border-white/10 py-5">
+        <div className="container-wide flex flex-col items-center justify-between gap-3 text-sm text-white/50 sm:flex-row">
+          <p>© KeyNestOS. All rights reserved.</p>
+          <nav className="flex items-center gap-6" aria-label="Legal">
+            <Link href="/terms" className="hover:text-white">
+              Terms of Service
+            </Link>
+            <Link href="/faq" className="hover:text-white">
+              FAQ
+            </Link>
+          </nav>
+        </div>
       </div>
     </footer>
   );

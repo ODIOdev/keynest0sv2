@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { AUTH } from "@/lib/auth-routes";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -14,5 +15,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/sign-in?error=auth`);
+  return NextResponse.redirect(
+    `${origin}${AUTH.error}?error=auth&message=${encodeURIComponent("Could not complete sign-in.")}`,
+  );
 }
