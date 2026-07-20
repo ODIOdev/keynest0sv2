@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, Suspense, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, Suspense, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
 import { PropertySearch } from "@/components/site/PropertySearch";
 import type { MapPin } from "@/lib/geo";
@@ -286,7 +286,7 @@ export function PropertiesMapHero({
     };
   }
 
-  function onSearchDragPointerDown(e: PointerEvent<HTMLButtonElement>) {
+  function onSearchDragPointerDown(e: ReactPointerEvent<HTMLButtonElement>) {
     if (!canDragSearch()) return;
     if (e.button !== 0) return;
     e.preventDefault();
@@ -304,7 +304,7 @@ export function PropertiesMapHero({
     e.currentTarget.setPointerCapture(e.pointerId);
   }
 
-  function onSearchDragPointerMove(e: PointerEvent<HTMLButtonElement>) {
+  function onSearchDragPointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
     const session = dragSessionRef.current;
     if (!session || session.pointerId !== e.pointerId) return;
     e.preventDefault();
@@ -317,7 +317,7 @@ export function PropertiesMapHero({
     requestAnimationFrame(() => syncShieldClip());
   }
 
-  function endSearchDrag(e: PointerEvent<HTMLButtonElement>) {
+  function endSearchDrag(e: ReactPointerEvent<HTMLButtonElement>) {
     const session = dragSessionRef.current;
     if (!session || session.pointerId !== e.pointerId) return;
     dragSessionRef.current = null;
