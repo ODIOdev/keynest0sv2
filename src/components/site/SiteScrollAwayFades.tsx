@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { useLenis } from "lenis/react";
 
 type FadeItem = {
   section: HTMLElement;
@@ -49,13 +48,27 @@ function supportsScrollTimeline() {
   );
 }
 
-function documentTop(el: HTMLElement) {
-  const rect = el.getBoundingClientRect();
-  return rect.top + (window.scrollY || 0);
+function getScrollRoot(): HTMLElement | Window {
+  return (
+    (document.querySelector(".site-card") as HTMLElement | null) ?? window
+  );
 }
 
-function measure(item: FadeItem) {
-  item.top = documentTop(item.section);
+function scrollYOf(root: HTMLElement | Window) {
+  return root instanceof Window ? root.scrollY || 0 : root.scrollTop;
+}
+
+function elementTopInRoot(el: HTMLElement, root: HTMLElement | Window) {
+  const elRect = el.getBoundingClientRect();
+  if (root instanceof Window) {
+    return elRect.top + (window.scrollY || 0);
+  }
+  const rootRect = root.getBoundingClientRect();
+  return elRect.top - rootRect.top + root.scrollTop;
+}
+
+function measure(item: FadeItem, root: HTMLElement | Window) {
+  item.top = elementTopInRoot(item.section, root);
   item.height = item.section.offsetHeight;
 }
 
@@ -103,6 +116,7 @@ export function SiteScrollAwayFades() {
 
     const cssMode = supportsScrollTimeline();
     cssModeRef.current = cssMode;
+    const root = getScrollRoot();
 
     itemsRef.current = collectTargets().map((section) => {
       section.classList.add("has-scroll-fade");
@@ -123,8 +137,8 @@ export function SiteScrollAwayFades() {
         last: -1,
       };
       if (!cssMode) {
-        measure(item);
-        applyOpacity(item, window.scrollY || 0);
+        measure(item, root);
+        applyOpacity(item, scrollYOf(root));
       }
       return item;
     });
@@ -139,15 +153,28 @@ export function SiteScrollAwayFades() {
       };
     }
 
-    const onResize = () => {
+    const onScroll = () => {
+      frameRef.current += 1;
+      const remasure = frameRef.current % 20 === 0;
+      const scroll = scrollYOf(root);
       for (const item of itemsRef.current) {
-        measure(item);
-        applyOpacity(item, window.scrollY || 0);
+        if (remasure) measure(item, root);
+        applyOpacity(item, scroll);
       }
     };
+
+    const onResize = () => {
+      for (const item of itemsRef.current) {
+        measure(item, root);
+        applyOpacity(item, scrollYOf(root));
+      }
+    };
+
+    root.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize, { passive: true });
 
     return () => {
+      root.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       itemsRef.current.forEach(({ fade, section }) => {
         fade.remove();
@@ -156,19 +183,6 @@ export function SiteScrollAwayFades() {
       itemsRef.current = [];
     };
   }, [pathname]);
-
-  useLenis(({ scroll }) => {
-    if (cssModeRef.current) return;
-
-    frameRef.current += 1;
-    // Remeasure every ~20 frames in case layout shifted
-    const remasure = frameRef.current % 20 === 0;
-
-    for (const item of itemsRef.current) {
-      if (remasure) measure(item);
-      applyOpacity(item, scroll);
-    }
-  });
 
   return null;
 }

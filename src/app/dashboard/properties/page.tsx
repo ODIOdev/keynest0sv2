@@ -1,12 +1,20 @@
 import Link from "next/link";
 import { DashboardFrame } from "@/components/dashboard/DashboardFrame";
 import { PropertiesInventory } from "@/components/dashboard/PropertiesInventory";
-import { listCategories, listProperties, listTags } from "@/lib/db";
+import { listCategories, listLeads, listProperties, listTags } from "@/lib/db";
+import { getPropertyAnalytics } from "@/lib/property-analytics";
 
 export default async function PropertiesAdminPage() {
   const properties = listProperties();
   const categories = listCategories();
   const tags = listTags();
+  const leads = listLeads();
+  const analyticsById = Object.fromEntries(
+    properties.map((property) => [
+      property.id,
+      getPropertyAnalytics(property, leads),
+    ]),
+  );
 
   return (
     <DashboardFrame
@@ -22,6 +30,7 @@ export default async function PropertiesAdminPage() {
         properties={properties}
         categories={categories}
         tags={tags}
+        analyticsById={analyticsById}
       />
     </DashboardFrame>
   );

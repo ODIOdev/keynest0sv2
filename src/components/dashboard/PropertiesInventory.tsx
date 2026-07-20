@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { DashboardPropertyCard } from "@/components/dashboard/DashboardPropertyCard";
 import { DeletePropertyButton } from "@/components/dashboard/DeleteButtons";
+import { PropertyAnalyticsButton } from "@/components/dashboard/PropertyAnalyticsOverlay";
 import {
   PropertyFilterToolbar,
   usePropertyFilters,
 } from "@/components/site/PropertyFilterToolbar";
 import { formatAddress, formatPrice } from "@/lib/format";
+import type { PropertyAnalytics } from "@/lib/property-analytics";
 import { displayTagsForProperty } from "@/lib/property-tags";
 import type { Category, Property, Tag } from "@/lib/types";
 
@@ -17,10 +19,12 @@ export function PropertiesInventory({
   properties,
   categories,
   tags,
+  analyticsById,
 }: {
   properties: Property[];
   categories: Category[];
   tags: Tag[];
+  analyticsById: Record<string, PropertyAnalytics>;
 }) {
   const filters = usePropertyFilters(properties);
 
@@ -65,6 +69,7 @@ export function PropertiesInventory({
               key={property.id}
               property={property}
               tags={tags}
+              analytics={analyticsById[property.id]}
             />
           ))}
         </div>
@@ -154,14 +159,9 @@ export function PropertiesInventory({
                         >
                           Edit
                         </Link>
-                        <Link
-                          href={`/properties/${property.slug}`}
-                          className="dash-property-card__btn dash-property-card__btn--ghost"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          View
-                        </Link>
+                        <PropertyAnalyticsButton
+                          analytics={analyticsById[property.id]}
+                        />
                         <DeletePropertyButton
                           id={property.id}
                           className="dash-property-card__btn dash-property-card__btn--danger"

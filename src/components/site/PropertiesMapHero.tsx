@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, Suspense } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, Suspense, type PointerEvent } from "react";
 import Link from "next/link";
-import { useLenis } from "lenis/react";
 import { PropertySearch } from "@/components/site/PropertySearch";
 import type { MapPin } from "@/lib/geo";
 import { loadGoogleMaps } from "@/lib/google-maps";
@@ -139,12 +138,24 @@ export function PropertiesMapHero({
   const mapActiveRef = useRef(false);
   const overSearchRef = useRef(false);
   const searchHitRef = useRef<HTMLDivElement>(null);
+  const chromeRef = useRef<HTMLDivElement>(null);
   const shieldRef = useRef<HTMLButtonElement>(null);
   const stageInnerRef = useRef<HTMLDivElement>(null);
   /** Blocks shield activation after search UI (native selects can click-through). */
   const suppressMapActivateUntilRef = useRef(0);
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-  const lenis = useLenis();
+  /** Desktop overlay only — drag offset for the floating search widget. */
+  const [searchOffset, setSearchOffset] = useState({ x: 0, y: 0 });
+  const [searchDragging, setSearchDragging] = useState(false);
+  const searchOffsetRef = useRef(searchOffset);
+  searchOffsetRef.current = searchOffset;
+  const dragSessionRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
 
   const mapFocusRef = useRef(mapFocus);
   mapFocusRef.current = mapFocus;
@@ -242,6 +253,83 @@ export function PropertiesMapHero({
     suppressMapActivateUntilRef.current = Date.now() + 2000;
   }
 
+  function canDragSearch() {
+    return (
+      !collapsed &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 900px)").matches
+    );
+  }
+
+  function clampSearchOffset(x: number, y: number) {
+    const hit = searchHitRef.current;
+    const chrome = chromeRef.current;
+    if (!hit || !chrome) return { x, y };
+
+    const pad = 12;
+    const hitRect = hit.getBoundingClientRect();
+    const chromeRect = chrome.getBoundingClientRect();
+    const cur = searchOffsetRef.current;
+    const naturalLeft = hitRect.left - cur.x;
+    const naturalTop = hitRect.top - cur.y;
+    const w = hitRect.width;
+    const h = hitRect.height;
+
+    const minX = chromeRect.left + pad - naturalLeft;
+    const maxX = chromeRect.right - pad - w - naturalLeft;
+    const minY = chromeRect.top + pad - naturalTop;
+    const maxY = chromeRect.bottom - pad - h - naturalTop;
+
+    return {
+      x: Math.min(maxX, Math.max(minX, x)),
+      y: Math.min(maxY, Math.max(minY, y)),
+    };
+  }
+
+  function onSearchDragPointerDown(e: PointerEvent<HTMLButtonElement>) {
+    if (!canDragSearch()) return;
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    noteSearchInteraction();
+    setOverSearchBoth(true);
+    setSearchDragging(true);
+    dragSessionRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: searchOffsetRef.current.x,
+      originY: searchOffsetRef.current.y,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function onSearchDragPointerMove(e: PointerEvent<HTMLButtonElement>) {
+    const session = dragSessionRef.current;
+    if (!session || session.pointerId !== e.pointerId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const next = clampSearchOffset(
+      session.originX + (e.clientX - session.startX),
+      session.originY + (e.clientY - session.startY),
+    );
+    setSearchOffset(next);
+    requestAnimationFrame(() => syncShieldClip());
+  }
+
+  function endSearchDrag(e: PointerEvent<HTMLButtonElement>) {
+    const session = dragSessionRef.current;
+    if (!session || session.pointerId !== e.pointerId) return;
+    dragSessionRef.current = null;
+    setSearchDragging(false);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* already released */
+    }
+    requestAnimationFrame(() => syncShieldClip());
+  }
+
   function syncShieldClip() {
     const shield = shieldRef.current;
     const search = searchHitRef.current;
@@ -287,13 +375,35 @@ export function PropertiesMapHero({
   }, [focus]);
 
   useEffect(() => {
+    if (collapsed) {
+      setSearchOffset({ x: 0, y: 0 });
+      setSearchDragging(false);
+      dragSessionRef.current = null;
+    }
+  }, [collapsed]);
+
+  useLayoutEffect(() => {
+    syncShieldClip();
+  }, [searchOffset, collapsed, mapActive]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (!canDragSearch()) return;
+      setSearchOffset((prev) => clampSearchOffset(prev.x, prev.y));
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [collapsed]);
+
+  useEffect(() => {
     if (!focus) return;
     const id = window.setTimeout(() => {
-      if (lenis) lenis.scrollTo(0, { duration: 0.65 });
+      const card = document.querySelector(".site-card") as HTMLElement | null;
+      if (card) card.scrollTo({ top: 0, behavior: "smooth" });
       else window.scrollTo({ top: 0, behavior: "smooth" });
     }, 80);
     return () => window.clearTimeout(id);
-  }, [focus?.lat, focus?.lng, lenis]);
+  }, [focus?.lat, focus?.lng]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -572,12 +682,10 @@ export function PropertiesMapHero({
     setCollapsed(next);
 
     if (!next) {
-      // Show map — always return to the top of the page
-      if (lenis) {
-        lenis.scrollTo(0, { duration: 0.85 });
-      } else {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+      // Show map — always return to the top of the card
+      const card = document.querySelector(".site-card") as HTMLElement | null;
+      if (card) card.scrollTo({ top: 0, behavior: "smooth" });
+      else window.scrollTo({ top: 0, behavior: "smooth" });
       // After expand animation, tell Maps the viewport is visible again
       window.setTimeout(refreshMap, 620);
     }
@@ -646,12 +754,21 @@ export function PropertiesMapHero({
         </div>
       </div>
 
-      <div className="properties-map-hero__chrome">
+      <div ref={chromeRef} className="properties-map-hero__chrome">
         <div
           ref={searchHitRef}
-          className="properties-map-hero__search-hit"
+          className={`properties-map-hero__search-hit${searchDragging ? " is-dragging" : ""}`}
+          style={
+            searchOffset.x !== 0 || searchOffset.y !== 0 || searchDragging
+              ? {
+                  transform: `translate3d(${searchOffset.x}px, ${searchOffset.y}px, 0)`,
+                }
+              : undefined
+          }
           onPointerEnter={() => setOverSearchBoth(true)}
-          onPointerLeave={() => setOverSearchBoth(false)}
+          onPointerLeave={() => {
+            if (!searchDragging) setOverSearchBoth(false);
+          }}
           onFocusCapture={() => {
             setOverSearchBoth(true);
             noteSearchInteraction();
@@ -670,6 +787,17 @@ export function PropertiesMapHero({
           }}
           onChangeCapture={() => noteSearchInteraction()}
         >
+          <button
+            type="button"
+            className="properties-map-hero__search-drag"
+            aria-label="Drag search panel"
+            onPointerDown={onSearchDragPointerDown}
+            onPointerMove={onSearchDragPointerMove}
+            onPointerUp={endSearchDrag}
+            onPointerCancel={endSearchDrag}
+          >
+            <span className="properties-map-hero__search-drag-grip" aria-hidden />
+          </button>
           <Suspense fallback={<div className="hero-search hero-search--map" />}>
             <PropertySearch
               variant="map"

@@ -4,11 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   forwardRef,
-  useCallback,
   useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -161,154 +157,31 @@ const PropertiesNavLink = forwardRef<
   );
 });
 
-type Mask = { x: number; y: number; w: number; h: number; visible: boolean };
-
 const HOME_LINK = { href: "/#home", label: "Home" } as const;
 
-/** Smooth-scroll nav links to homepage sections */
+/** Primary site navigation */
 export function SiteNav({
   className,
   onNavigate,
-  includeHome = false,
 }: {
   className?: string;
   onNavigate?: () => void;
-  /** Prefixed Home link — used in the mobile drawer only */
-  includeHome?: boolean;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const navRef = useRef<HTMLElement>(null);
-  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const [mask, setMask] = useState<Mask>({
-    x: 0,
-    y: 0,
-    w: 0,
-    h: 0,
-    visible: false,
-  });
-  const maskReady = useRef(false);
-  const routeKey = `${pathname}?${searchParams.toString()}`;
-  const prevRouteKey = useRef(routeKey);
-
-  const links = includeHome ? [HOME_LINK, ...navLinks] : navLinks;
-
-  const activeIndex = links.findIndex((link) =>
-    "action" in link && link.action === "chat"
-      ? false
-      : linkIsActive(link.href, pathname, searchParams),
-  );
-
-  const moveMaskTo = useCallback((index: number | null, instant = false) => {
-    const nav = navRef.current;
-    const el = index === null ? null : itemRefs.current[index];
-    if (!nav || !el) {
-      setMask({ x: 0, y: 0, w: 0, h: 0, visible: false });
-      return;
-    }
-    const navBox = nav.getBoundingClientRect();
-    const box = el.getBoundingClientRect();
-    // Skip bogus measurements (hidden / not laid out yet)
-    if (box.width < 2 || box.height < 2) {
-      setMask({ x: 0, y: 0, w: 0, h: 0, visible: false });
-      return;
-    }
-    const next = {
-      x: box.left - navBox.left,
-      y: box.top - navBox.top,
-      w: box.width,
-      h: box.height,
-      visible: true,
-    };
-
-    if (instant || !maskReady.current) {
-      maskReady.current = true;
-      const maskEl = nav.querySelector<HTMLElement>(".site-header__mask");
-      if (maskEl) {
-        maskEl.style.transition = "none";
-        setMask(next);
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (maskEl) maskEl.style.transition = "";
-          });
-        });
-        return;
-      }
-    }
-    setMask(next);
-  }, []);
-
-  // Overlay follows pointer / focus; falls back to active route when idle
-  useLayoutEffect(() => {
-    const target = hoverIndex ?? (activeIndex >= 0 ? activeIndex : null);
-    const routeChanged = prevRouteKey.current !== routeKey;
-    prevRouteKey.current = routeKey;
-    moveMaskTo(target, routeChanged);
-  }, [hoverIndex, activeIndex, moveMaskTo, routeKey, links.length]);
-
-  useEffect(() => {
-    const nav = navRef.current;
-    if (!nav) return;
-
-    const sync = () => {
-      const target = hoverIndex ?? (activeIndex >= 0 ? activeIndex : null);
-      moveMaskTo(target, true);
-    };
-
-    window.addEventListener("resize", sync);
-    const ro =
-      typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(() => sync())
-        : null;
-    ro?.observe(nav);
-
-    return () => {
-      window.removeEventListener("resize", sync);
-      ro?.disconnect();
-    };
-  }, [hoverIndex, activeIndex, moveMaskTo]);
+  const links = pathname === "/" ? navLinks : [HOME_LINK, ...navLinks];
 
   return (
-    <nav
-      ref={navRef}
-      className={className}
-      aria-label="Primary"
-      onMouseLeave={() => setHoverIndex(null)}
-    >
-      <span
-        className={`site-header__mask${mask.visible ? " is-on" : ""}`}
-        aria-hidden
-        style={{
-          transform: `translate3d(${mask.x}px, ${mask.y}px, 0)`,
-          width: mask.w,
-          height: mask.h,
-        }}
-      />
-      {links.map((link, index) => {
+    <nav className={className} aria-label="Primary">
+      {links.map((link) => {
         const active =
           "action" in link && link.action === "chat"
             ? false
             : linkIsActive(link.href, pathname, searchParams);
         const classes = `site-header__link${active ? " is-active" : ""}`;
-        const setRef = (node: HTMLAnchorElement | null) => {
-          itemRefs.current[index] = node;
-        };
-        const shared = {
-          className: classes,
-          onMouseEnter: () => setHoverIndex(index),
-          onFocus: () => setHoverIndex(index),
-          onBlur: () => setHoverIndex(null),
-        };
 
         if ("action" in link && link.action === "chat") {
-          return (
-            <ChatNavButton
-              key={link.label}
-              setRef={setRef}
-              {...shared}
-            />
-          );
+          return <ChatNavButton key={link.label} className={classes} />;
         }
 
         const isPropertiesNav = navKindFromHref(link.href) !== null;
@@ -317,9 +190,8 @@ export function SiteNav({
           return (
             <PropertiesNavLink
               key={link.label}
-              ref={setRef}
               href={link.href}
-              {...shared}
+              className={classes}
               onClick={onNavigate}
               aria-current={active ? "page" : undefined}
             >
@@ -331,9 +203,8 @@ export function SiteNav({
         return link.href.includes("#") ? (
           <ScrollLink
             key={link.label}
-            ref={setRef}
             href={link.href}
-            {...shared}
+            className={classes}
             onClick={onNavigate}
           >
             <span>{link.label}</span>
@@ -341,9 +212,8 @@ export function SiteNav({
         ) : (
           <Link
             key={link.label}
-            ref={setRef}
             href={link.href}
-            {...shared}
+            className={classes}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
           >

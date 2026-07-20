@@ -4,6 +4,7 @@ import { BrandProvider } from "@/components/site/BrandProvider";
 import { SmoothScrollProvider } from "@/components/site/SmoothScrollProvider";
 import { ChatProvider } from "@/components/site/ChatWidget";
 import { SitePreloader } from "@/components/site/SitePreloader";
+import { SiteViewport } from "@/components/site/SiteViewport";
 import { getSettings } from "@/lib/db";
 import "./globals.css";
 
@@ -46,7 +47,9 @@ export default function RootLayout({
         >
           <SmoothScrollProvider>
             <SitePreloader />
-            <ChatProvider>{children}</ChatProvider>
+            <ChatProvider>
+              <SiteViewport>{children}</SiteViewport>
+            </ChatProvider>
           </SmoothScrollProvider>
         </BrandProvider>
       </body>

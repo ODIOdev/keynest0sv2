@@ -10,6 +10,7 @@ const groups = [
     label: "Workspace",
     links: [
       { href: "/dashboard", label: "Overview", icon: "grid" },
+      { href: "/dashboard/analytics", label: "Analytics", icon: "chart" },
       { href: "/dashboard/leads", label: "Leads", icon: "users" },
       { href: "/dashboard/properties", label: "Properties", icon: "home" },
     ],
@@ -54,6 +55,16 @@ function NavIcon({ name }: { name: NavIconName }) {
           <rect x="14" y="3" width="7" height="7" rx="1.5" />
           <rect x="3" y="14" width="7" height="7" rx="1.5" />
           <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+      );
+    case "chart":
+      return (
+        <svg {...props}>
+          <path d="M4 19V5" />
+          <path d="M4 19h16" />
+          <path d="M8 15v-4" />
+          <path d="M12 15V8" />
+          <path d="M16 15v-7" />
         </svg>
       );
     case "users":
@@ -193,8 +204,10 @@ export function DashboardNav() {
                     className={`dash-nav__link${active ? " is-active" : ""}`}
                     onClick={() => setOpen(false)}
                   >
-                    <NavIcon name={link.icon} />
-                    <span>{link.label}</span>
+                    <span className="dash-nav__icon" aria-hidden>
+                      <NavIcon name={link.icon} />
+                    </span>
+                    <span className="dash-nav__label">{link.label}</span>
                   </Link>
                 );
               })}
@@ -205,43 +218,49 @@ export function DashboardNav() {
         <div className="dash-nav__footer">
           <Link
             href="/"
-            className="dash-nav__link"
+            className="dash-nav__link dash-nav__link--quiet"
             onClick={() => setOpen(false)}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <path d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <path d="M15 3h6v6" />
-              <path d="M10 14 21 3" />
-            </svg>
-            <span>View website</span>
+            <span className="dash-nav__icon" aria-hidden>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <path d="M15 3h6v6" />
+                <path d="M10 14 21 3" />
+              </svg>
+            </span>
+            <span className="dash-nav__label">View website</span>
           </Link>
-          <button type="button" onClick={logout} className="dash-nav__link">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <path d="M16 17l5-5-5-5" />
-              <path d="M21 12H9" />
-            </svg>
-            <span>Sign out</span>
+          <button
+            type="button"
+            onClick={logout}
+            className="dash-nav__link dash-nav__link--quiet"
+          >
+            <span className="dash-nav__icon" aria-hidden>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="M16 17l5-5-5-5" />
+                <path d="M21 12H9" />
+              </svg>
+            </span>
+            <span className="dash-nav__label">Sign out</span>
           </button>
         </div>
       </div>

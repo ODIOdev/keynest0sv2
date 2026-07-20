@@ -1,16 +1,22 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { DeletePropertyButton } from "@/components/dashboard/DeleteButtons";
+import { PropertyAnalyticsButton } from "@/components/dashboard/PropertyAnalyticsOverlay";
 import { formatAddress, formatPrice } from "@/lib/format";
+import type { PropertyAnalytics } from "@/lib/property-analytics";
 import { displayTagsForProperty } from "@/lib/property-tags";
 import type { Property, Tag } from "@/lib/types";
 
 export function DashboardPropertyCard({
   property,
   tags: allTags,
+  analytics,
 }: {
   property: Property;
   tags: Tag[];
+  analytics: PropertyAnalytics;
 }) {
   const price = formatPrice(property);
   const image = property.images[0] || "/placeholder-property.jpg";
@@ -76,14 +82,7 @@ export function DashboardPropertyCard({
         >
           Edit
         </Link>
-        <Link
-          href={`/properties/${property.slug}`}
-          className="dash-property-card__btn dash-property-card__btn--ghost"
-          target="_blank"
-          rel="noreferrer"
-        >
-          View
-        </Link>
+        <PropertyAnalyticsButton analytics={analytics} />
         <DeletePropertyButton
           id={property.id}
           className="dash-property-card__btn dash-property-card__btn--danger"
