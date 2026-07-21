@@ -29,3 +29,16 @@ export function formatPhoneInput(value: string) {
   if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
+
+/** Keep only digits for money inputs (no leading zeros). */
+export function parseMoneyDigits(raw: string, maxDigits = 12) {
+  return raw.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, maxDigits);
+}
+
+/** Display money digits with US thousands separators (no currency symbol). */
+export function formatMoneyDigits(value: string) {
+  if (!value) return "";
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "";
+  return new Intl.NumberFormat("en-US").format(n);
+}

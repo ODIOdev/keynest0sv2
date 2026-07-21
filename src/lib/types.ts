@@ -34,6 +34,8 @@ export type Property = {
   featured: boolean;
   status: "draft" | "published" | "sold" | "rented";
   agentId: string | null;
+  /** Soft-delete timestamp; null = active. Permanent purge clears the row. */
+  deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -82,16 +84,54 @@ export type Tag = {
   updatedAt: string;
 };
 
+export type SiteStat = {
+  label: string;
+  value: string;
+  description: string;
+};
+
+export type SiteProcessStep = {
+  step: string;
+  title: string;
+  text: string;
+  image: string;
+};
+
+export type SiteTestimonial = {
+  quote: string;
+  text: string;
+  name: string;
+  place: string;
+  image: string;
+};
+
 export type SiteSettings = {
   brandName: string;
   /** Public site logo URL (header, hero, etc.). Empty = text wordmark. */
   brandLogo: string;
   tagline: string;
   heroTitle: string;
+  heroHeadline: string;
+  heroSupport: string;
+  heroImage: string;
   aboutHeading: string;
   aboutText: string;
   aboutImage: string;
-  stats: { label: string; value: string; description: string }[];
+  chooseHeading: string;
+  chooseText: string;
+  chooseImage: string;
+  journeyHeading: string;
+  featuredHeading: string;
+  statsHeading: string;
+  stats: SiteStat[];
+  processHeading: string;
+  processSteps: SiteProcessStep[];
+  agentsHeading: string;
+  testimonialsHeading: string;
+  testimonials: SiteTestimonial[];
+  blogHeading: string;
+  /** Public footer social links (synced from profile settings). */
+  socialLinks: { id: string; platform: string; handle: string }[];
 };
 
 export type Database = {

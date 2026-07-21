@@ -11,14 +11,10 @@ type FadeItem = {
   last: number;
 };
 
-function isMarketingPath(pathname: string) {
-  return !(
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/onboarding") ||
-    pathname === "/about" ||
-    pathname.startsWith("/properties/")
-  );
+function isScrollFadePath(pathname: string) {
+  // Long multi-section home only — single-section pages (sell, contact, etc.)
+  // look washed-out / broken when the whole main fades.
+  return pathname === "/";
 }
 
 function isDarkSection(section: HTMLElement) {
@@ -112,7 +108,7 @@ export function SiteScrollAwayFades() {
     itemsRef.current = [];
     cssModeRef.current = false;
 
-    if (!isMarketingPath(pathname)) return;
+    if (!isScrollFadePath(pathname)) return;
 
     const cssMode = supportsScrollTimeline();
     cssModeRef.current = cssMode;

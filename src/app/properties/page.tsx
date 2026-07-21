@@ -1,6 +1,7 @@
 import { PropertiesMapHero } from "@/components/site/PropertiesMapHero";
 import { PropertyResults } from "@/components/site/PropertyResults";
-import { SiteFooter, SiteHeader } from "@/components/site/Shell";
+import { SiteHeader } from "@/components/site/Shell";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import { listCategories, listProperties, listTags } from "@/lib/db";
 import { propertiesToPins } from "@/lib/geo";
 import type { Property } from "@/lib/types";

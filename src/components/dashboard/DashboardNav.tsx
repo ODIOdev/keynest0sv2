@@ -12,6 +12,7 @@ const groups = [
       { href: "/dashboard", label: "Overview", icon: "grid" },
       { href: "/dashboard/analytics", label: "Analytics", icon: "chart" },
       { href: "/dashboard/leads", label: "Leads", icon: "users" },
+      { href: "/dashboard/messages", label: "Messages", icon: "message" },
       { href: "/dashboard/properties", label: "Properties", icon: "home" },
     ],
   },
@@ -21,6 +22,7 @@ const groups = [
       { href: "/dashboard/categories", label: "Categories", icon: "layers" },
       { href: "/dashboard/media", label: "Media", icon: "image" },
       { href: "/dashboard/agents", label: "Agents", icon: "badge" },
+      { href: "/dashboard/web-manager", label: "Web Manager", icon: "globe" },
     ],
   },
   {
@@ -103,6 +105,21 @@ function NavIcon({ name }: { name: NavIconName }) {
       return (
         <svg {...props}>
           <path d="M12 3 14.5 8.5 20.5 9.5 16 13.5 17.2 19.5 12 16.6 6.8 19.5 8 13.5 3.5 9.5 9.5 8.5 12 3Z" />
+        </svg>
+      );
+    case "message":
+      return (
+        <svg {...props}>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      );
+    case "globe":
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18" />
+          <path d="M12 3a14 14 0 0 1 0 18" />
+          <path d="M12 3a14 14 0 0 0 0 18" />
         </svg>
       );
     case "team":

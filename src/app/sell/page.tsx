@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SellPropertyForm } from "@/components/site/SellPropertyForm";
-import { SiteFooter, SiteHeader } from "@/components/site/Shell";
+import { SiteHeader } from "@/components/site/Shell";
+import { SiteFooter } from "@/components/site/SiteFooter";
 
 export const metadata = {
   title: "Sell",

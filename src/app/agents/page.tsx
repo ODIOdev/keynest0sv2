@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { SiteFooter, SiteHeader } from "@/components/site/Shell";
+import { SiteHeader } from "@/components/site/Shell";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import { listAgents } from "@/lib/db";
 
 export const metadata = { title: "Agents" };

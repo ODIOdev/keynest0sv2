@@ -3,7 +3,8 @@ import Link from "next/link";
 import { Hero } from "@/components/site/Hero";
 import { HomeCategoryCarousel } from "@/components/site/HomeCategoryCarousel";
 import { PropertyResults } from "@/components/site/PropertyResults";
-import { SiteFooter, SiteHeader } from "@/components/site/Shell";
+import { SiteHeader } from "@/components/site/Shell";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import {
   listAgents,
   listCategories,
@@ -30,15 +31,16 @@ export default function HomePage() {
       <SiteHeader />
       <main>
         <Hero
-          headline="Homes worth coming back to."
-          support="Browse curated listings, meet trusted agents, and move from first tour to keys with a clearer path."
+          headline={settings.heroHeadline}
+          support={settings.heroSupport}
+          image={settings.heroImage}
         />
 
         <section id="properties" className="section-pad bg-white scroll-mt-[88px]">
           <div className="container-wide">
             <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="heading-xl">Featured properties</h2>
+                <h2 className="heading-xl">{settings.featuredHeading}</h2>
               </div>
               <Link href="/properties" className="btn-secondary">
                 Explore all
@@ -80,7 +82,7 @@ export default function HomePage() {
         <section className="section-pad">
           <div className="container-wide">
             <div className="mb-10 max-w-2xl">
-              <h2 className="heading-xl">Start your journey to your ideal property</h2>
+              <h2 className="heading-xl">{settings.journeyHeading}</h2>
             </div>
             <HomeCategoryCarousel categories={categories} />
           </div>
@@ -90,7 +92,7 @@ export default function HomePage() {
           <div className="container-wide grid items-center gap-10 lg:grid-cols-2">
             <div className="overflow-hidden rounded-[28px]">
               <Image
-                src={ASSETS.choose}
+                src={settings.chooseImage || ASSETS.choose}
                 alt="Why choose us"
                 width={900}
                 height={700}
@@ -99,13 +101,10 @@ export default function HomePage() {
             </div>
             <div>
               <h2 className="mb-5 text-4xl font-semibold tracking-tight md:text-5xl">
-                Why we are best in Real-Estate market?
+                {settings.chooseHeading}
               </h2>
               <p className="mb-8 text-lg leading-relaxed text-white/70">
-                With our unmatched expertise, personalized service, and deep knowledge
-                of the real estate market, we make your home buying or selling
-                experience seamless and stress-free. Our dedicated team of professionals
-                listens to your needs and provides tailored guidance.
+                {settings.chooseText}
               </p>
               <Link href="/contact" className="btn-white">
                 Contact us
@@ -117,7 +116,7 @@ export default function HomePage() {
         <section className="section-pad">
           <div className="container-wide">
             <div className="mb-10">
-              <h2 className="heading-xl">The numbers behind our success</h2>
+              <h2 className="heading-xl">{settings.statsHeading}</h2>
             </div>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               {settings.stats.map((stat) => (
@@ -143,33 +142,12 @@ export default function HomePage() {
         <section className="section-pad bg-[#f7f7f7]">
           <div className="container-wide">
             <div className="mb-12 max-w-3xl">
-              <h2 className="heading-xl">
-                Find your dream house & follow our process
-              </h2>
+              <h2 className="heading-xl">{settings.processHeading}</h2>
             </div>
             <div className="space-y-10">
-              {[
-                {
-                  step: "Step-1",
-                  title: "Look for your dream home in your local area today",
-                  text: "Explore a carefully curated selection of stunning homes near you that perfectly match your unique lifestyle, preferences, and specific needs.",
-                  image: ASSETS.process[0],
-                },
-                {
-                  step: "Step-2",
-                  title: "Schedule a meeting with one of our agents",
-                  text: "Book a personalized meeting with one of our experienced agents to thoroughly explore all your options and find the perfect property.",
-                  image: ASSETS.process[1],
-                },
-                {
-                  step: "Step-3",
-                  title: "A month or less, get your ideal home",
-                  text: "Secure your dream home in a month or less with our expert assistance, personalized guidance, and streamlined processes.",
-                  image: ASSETS.process[2],
-                },
-              ].map((item, index) => (
+              {settings.processSteps.map((item, index) => (
                 <div
-                  key={item.step}
+                  key={`${item.step}-${index}`}
                   className={`grid items-center gap-8 lg:grid-cols-2 ${
                     index % 2 === 1 ? "lg:[&>*:first-child]:order-2" : ""
                   }`}
@@ -200,7 +178,7 @@ export default function HomePage() {
 
         <section id="agents" className="section-pad overflow-hidden scroll-mt-[88px]">
           <div className="container-wide mb-10">
-            <h2 className="heading-xl">Our expert agents</h2>
+            <h2 className="heading-xl">{settings.agentsHeading}</h2>
           </div>
           <div className="marquee">
             <div className="marquee-track">
@@ -229,33 +207,10 @@ export default function HomePage() {
         <section className="section-pad bg-[#f7f7f7]">
           <div className="container-wide">
             <div className="mb-10">
-              <h2 className="heading-xl">Real stories from happy homeowners</h2>
+              <h2 className="heading-xl">{settings.testimonialsHeading}</h2>
             </div>
             <div className="grid gap-6 lg:grid-cols-3">
-              {[
-                {
-                  quote:
-                    "Their attention to detail market expertise made all the difference.",
-                  text: "Their dedication and commitment to finding the right property were evident throughout. I highly recommend their services.",
-                  name: "David Martinez",
-                  place: "San Jose, South Dakota",
-                  image: ASSETS.testimonials[0],
-                },
-                {
-                  quote: "An exceptional experience from start to finish!",
-                  text: "From the first meeting to the closing, they were professional, knowledgeable, and always available to answer our questions.",
-                  name: "James Thompson",
-                  place: "Dallas, Texas",
-                  image: ASSETS.testimonials[1],
-                },
-                {
-                  quote: "Exceptional service and outstanding results.",
-                  text: "The team’s marketing strategy and negotiation skills exceeded my expectations. I couldn’t be more pleased with the outcome.",
-                  name: "Olivia Carter",
-                  place: "Boston, Florida",
-                  image: ASSETS.testimonials[2],
-                },
-              ].map((item) => (
+              {settings.testimonials.map((item) => (
                 <article
                   key={item.name}
                   className="rounded-[24px] border border-[#e8e8e8] bg-white p-7"
@@ -287,7 +242,7 @@ export default function HomePage() {
           <div className="container-wide">
             <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="heading-xl">Read our latest blogs</h2>
+                <h2 className="heading-xl">{settings.blogHeading}</h2>
               </div>
               <span className="btn-secondary">Explore All</span>
             </div>

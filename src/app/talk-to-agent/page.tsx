@@ -1,16 +1,17 @@
 import { AgentTalkForm } from "@/components/site/AgentTalkForm";
-import { SiteFooter, SiteHeader } from "@/components/site/Shell";
+import { SiteHeader } from "@/components/site/Shell";
+import { SiteFooter } from "@/components/site/SiteFooter";
 
 export const metadata = {
   title: "Talk to an agent",
   description:
-    "Connect with a KeyNestOS agent about buying, renting, selling, or investing.",
+    "Connect with a KeyNestOS agent about buying, renting, or selling.",
 };
 
 const STEPS = [
   {
     title: "Tell us your goal",
-    copy: "Buy, rent, sell, or invest — we route you to the right specialist.",
+    copy: "Buy, rent, or sell — we route you to the right specialist.",
   },
   {
     title: "Share preferences",

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { SiteFooter, SiteHeader } from "@/components/site/Shell";
+import { SiteHeader } from "@/components/site/Shell";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import { getSettings, listAgents } from "@/lib/db";
 
 export const metadata = { title: "About Us" };

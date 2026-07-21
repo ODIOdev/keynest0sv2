@@ -4,6 +4,8 @@ import {
   createProperty,
   deleteProperty,
   listProperties,
+  purgeProperty,
+  restoreProperty,
   updateProperty,
 } from "@/lib/db";
 
@@ -70,6 +72,27 @@ export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
-  deleteProperty(id);
-  return NextResponse.json({ ok: true });
+
+  const permanent = searchParams.get("permanent") === "1";
+  if (permanent) {
+    if (!purgeProperty(id)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true, purged: true });
+  }
+
+  const restore = searchParams.get("restore") === "1";
+  if (restore) {
+    const property = restoreProperty(id);
+    if (!property) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true, property });
+  }
+
+  const property = deleteProperty(id);
+  if (!property) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  return NextResponse.json({ ok: true, deletedAt: property.deletedAt });
 }

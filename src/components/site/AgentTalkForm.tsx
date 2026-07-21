@@ -1,14 +1,17 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { formatPhoneInput } from "@/lib/format";
+import {
+  formatMoneyDigits,
+  formatPhoneInput,
+  parseMoneyDigits,
+} from "@/lib/format";
 import { PlacesAutocompleteInput } from "@/components/site/PlacesAutocompleteInput";
 
 const GOALS = [
   { value: "buy", label: "Buy", hint: "Find a home to purchase" },
   { value: "rent", label: "Rent", hint: "Lease a place to live" },
   { value: "sell", label: "Sell", hint: "List a property" },
-  { value: "invest", label: "Invest", hint: "Build a portfolio" },
 ] as const;
 
 const PROPERTY_TYPES = [
@@ -26,6 +29,8 @@ const CONTACT_METHODS = [
   { value: "email", label: "Email" },
 ] as const;
 
+const MORTGAGE_MONTHS = Array.from({ length: 400 }, (_, i) => i + 1);
+
 export function AgentTalkForm() {
   const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">(
     "idle",
@@ -35,6 +40,30 @@ export function AgentTalkForm() {
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [secondaryLocation, setSecondaryLocation] = useState("");
+  const [budgetMin, setBudgetMin] = useState("");
+  const [budgetMax, setBudgetMax] = useState("");
+  const [annualIncome, setAnnualIncome] = useState("");
+  const [propertyPaidOff, setPropertyPaidOff] = useState<"yes" | "no" | "">(
+    "",
+  );
+  const [mortgageMonths, setMortgageMonths] = useState("");
+  const isRent = goal === "rent";
+  const isSell = goal === "sell";
+  const mortgageActive = isSell && propertyPaidOff === "no";
+
+  function resetMoneyFields() {
+    setBudgetMin("");
+    setBudgetMax("");
+    setAnnualIncome("");
+  }
+
+  function setPaidOff(next: "yes" | "no") {
+    setPropertyPaidOff((prev) => {
+      const value = prev === next ? "" : next;
+      if (value !== "no") setMortgageMonths("");
+      return value;
+    });
+  }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,11 +82,31 @@ export function AgentTalkForm() {
       types.length ? `Property types: ${types.join(", ")}` : null,
       form.get("beds") ? `Beds (min): ${form.get("beds")}` : null,
       form.get("baths") ? `Baths (min): ${form.get("baths")}` : null,
-      form.get("budgetMin") || form.get("budgetMax")
-        ? `Budget: ${form.get("budgetMin") || "any"} – ${form.get("budgetMax") || "any"}`
+      budgetMin || budgetMax
+        ? `${isRent ? "Rent" : "Budget"}: ${budgetMin ? `$${formatMoneyDigits(budgetMin)}` : "any"} – ${budgetMax ? `$${formatMoneyDigits(budgetMax)}` : "any"}`
         : null,
-      form.get("financing") ? `Financing: ${form.get("financing")}` : null,
-      form.get("preapproved") ? `Pre-approved: ${form.get("preapproved")}` : null,
+      isRent
+        ? annualIncome
+          ? `Annual income: $${formatMoneyDigits(annualIncome)}`
+          : null
+        : isSell
+          ? mortgageActive && mortgageMonths
+            ? `Mortgage remaining: ${mortgageMonths} months`
+            : null
+          : form.get("financing")
+            ? `Financing: ${form.get("financing")}`
+            : null,
+      isRent
+        ? form.get("creditScore")
+          ? `Credit score: ${form.get("creditScore")}`
+          : null
+        : isSell
+          ? propertyPaidOff
+            ? `Property paid off: ${propertyPaidOff}`
+            : null
+          : form.get("preapproved")
+            ? `Pre-approved: ${form.get("preapproved")}`
+            : null,
       form.get("movers") ? `Household size: ${form.get("movers")}` : null,
       form.get("message") ? `Notes:\n${form.get("message")}` : null,
     ]
@@ -85,6 +134,9 @@ export function AgentTalkForm() {
       setPhone("");
       setLocation("");
       setSecondaryLocation("");
+      setPropertyPaidOff("");
+      setMortgageMonths("");
+      resetMoneyFields();
     }
   }
 
@@ -111,7 +163,12 @@ export function AgentTalkForm() {
                 name="interest"
                 value={item.value}
                 checked={goal === item.value}
-                onChange={() => setGoal(item.value)}
+                onChange={() => {
+                  setGoal(item.value);
+                  setPropertyPaidOff("");
+                  setMortgageMonths("");
+                  resetMoneyFields();
+                }}
                 required
               />
               <span className="agent-form__goal-label">{item.label}</span>
@@ -302,48 +359,165 @@ export function AgentTalkForm() {
           </div>
           <div className="agent-form__pair">
             <label className="field">
-              <span>Budget min (USD)</span>
-              <input
-                name="budgetMin"
-                type="number"
-                min={0}
-                step={1000}
-                placeholder="250000"
-              />
+              <span>{isRent ? "Rent min" : "Budget min (USD)"}</span>
+              <div className="field-money">
+                <span className="field-money__prefix" aria-hidden>
+                  $
+                </span>
+                <input type="hidden" name="budgetMin" value={budgetMin} />
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder={isRent ? "1,500" : "250,000"}
+                  value={formatMoneyDigits(budgetMin)}
+                  onChange={(e) =>
+                    setBudgetMin(parseMoneyDigits(e.target.value))
+                  }
+                  aria-label={isRent ? "Rent min in dollars" : "Budget min in dollars"}
+                />
+              </div>
             </label>
             <label className="field">
-              <span>Budget max (USD)</span>
-              <input
-                name="budgetMax"
-                type="number"
-                min={0}
-                step={1000}
-                placeholder="650000"
-              />
+              <span>{isRent ? "Rent max" : "Budget max (USD)"}</span>
+              <div className="field-money">
+                <span className="field-money__prefix" aria-hidden>
+                  $
+                </span>
+                <input type="hidden" name="budgetMax" value={budgetMax} />
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder={isRent ? "3,500" : "650,000"}
+                  value={formatMoneyDigits(budgetMax)}
+                  onChange={(e) =>
+                    setBudgetMax(parseMoneyDigits(e.target.value))
+                  }
+                  aria-label={isRent ? "Rent max in dollars" : "Budget max in dollars"}
+                />
+              </div>
             </label>
           </div>
-          <div className="agent-form__pair">
-            <label className="field">
-              <span>Financing</span>
-              <select name="financing" defaultValue="">
-                <option value="">Not sure yet</option>
-                <option value="cash">Cash</option>
-                <option value="mortgage">Mortgage</option>
-                <option value="lease">Lease / rental</option>
-                <option value="other">Other</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Pre-approved?</span>
-              <select name="preapproved" defaultValue="">
-                <option value="">Prefer not to say</option>
-                <option value="yes">Yes</option>
-                <option value="in-progress">In progress</option>
-                <option value="no">Not yet</option>
-                <option value="n-a">Not applicable</option>
-              </select>
-            </label>
-          </div>
+          {isSell ? (
+            <div className="agent-form__sell-row">
+              <fieldset className="field">
+                <span>Property paid off?</span>
+                <div
+                  className="agent-form__checks"
+                  role="group"
+                  aria-label="Property paid off"
+                >
+                  <label className="agent-form__check">
+                    <input
+                      type="checkbox"
+                      name="propertyPaidOff"
+                      value="yes"
+                      checked={propertyPaidOff === "yes"}
+                      onChange={() => setPaidOff("yes")}
+                    />
+                    <span>Yes</span>
+                  </label>
+                  <label className="agent-form__check">
+                    <input
+                      type="checkbox"
+                      name="propertyPaidOff"
+                      value="no"
+                      checked={propertyPaidOff === "no"}
+                      onChange={() => setPaidOff("no")}
+                    />
+                    <span>No</span>
+                  </label>
+                </div>
+              </fieldset>
+              <label
+                className={`field${mortgageActive ? " is-mortgage-active" : " is-mortgage-idle"}`}
+              >
+                <span>Mortgage</span>
+                <select
+                  name="mortgageMonths"
+                  value={mortgageMonths}
+                  disabled={!mortgageActive}
+                  onChange={(e) => setMortgageMonths(e.target.value)}
+                  aria-disabled={!mortgageActive}
+                >
+                  <option value="">
+                    {mortgageActive
+                      ? "Select months remaining"
+                      : "Select No if mortgage remains"}
+                  </option>
+                  {MORTGAGE_MONTHS.map((months) => (
+                    <option key={months} value={months}>
+                      {months} {months === 1 ? "month" : "months"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : (
+            <div className="agent-form__pair">
+              {isRent ? (
+                <>
+                  <label className="field">
+                    <span>Annual income</span>
+                    <div className="field-money">
+                      <span className="field-money__prefix" aria-hidden>
+                        $
+                      </span>
+                      <input
+                        type="hidden"
+                        name="annualIncome"
+                        value={annualIncome}
+                      />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        placeholder="85,000"
+                        value={formatMoneyDigits(annualIncome)}
+                        onChange={(e) =>
+                          setAnnualIncome(parseMoneyDigits(e.target.value))
+                        }
+                        aria-label="Annual income in dollars"
+                      />
+                    </div>
+                  </label>
+                  <label className="field">
+                    <span>Credit score</span>
+                    <select name="creditScore" defaultValue="">
+                      <option value="">Prefer not to say</option>
+                      <option value="poor">Poor</option>
+                      <option value="good">Good</option>
+                      <option value="excellent">Excellent</option>
+                    </select>
+                  </label>
+                </>
+              ) : (
+                <>
+                  <label className="field">
+                    <span>Financing</span>
+                    <select name="financing" defaultValue="">
+                      <option value="">Not sure yet</option>
+                      <option value="cash">Cash</option>
+                      <option value="mortgage">Mortgage</option>
+                      <option value="lease">Lease / rental</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Pre-approved?</span>
+                    <select name="preapproved" defaultValue="">
+                      <option value="">Prefer not to say</option>
+                      <option value="yes">Yes</option>
+                      <option value="in-progress">In progress</option>
+                      <option value="no">Not yet</option>
+                      <option value="n-a">Not applicable</option>
+                    </select>
+                  </label>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

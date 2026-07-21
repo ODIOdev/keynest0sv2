@@ -1,13 +1,66 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatPhoneInput } from "@/lib/format";
+import {
+  buildProfileCsv,
+  downloadProfileCsv,
+  parseProfileCsv,
+} from "@/lib/profile-csv";
 import { SETTINGS } from "@/lib/settings-routes";
-import type { Organization, Profile } from "@/lib/auth-types";
+import type { Organization, Profile, ProfileSocialLink } from "@/lib/auth-types";
+import type { Property } from "@/lib/types";
+import { SocialPlatformIcon } from "@/components/site/SocialPlatformIcon";
+
+const SOCIAL_PLATFORMS = [
+  "Instagram",
+  "Facebook",
+  "X",
+  "LinkedIn",
+  "TikTok",
+  "YouTube",
+  "Other",
+] as const;
+
+const GENDER_OPTIONS = [
+  { value: "", label: "Prefer not to say" },
+  { value: "woman", label: "Woman" },
+  { value: "man", label: "Man" },
+  { value: "non_binary", label: "Non-binary" },
+  { value: "other", label: "Other" },
+] as const;
+
+function normalizeSocialLinks(
+  value: Profile["social_links"],
+): ProfileSocialLink[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (item): item is ProfileSocialLink =>
+        Boolean(item) &&
+        typeof item === "object" &&
+        typeof item.id === "string" &&
+        typeof item.platform === "string" &&
+        typeof item.handle === "string",
+    )
+    .map((item) => ({
+      id: item.id,
+      platform: item.platform.trim() || "Other",
+      handle: item.handle.trim(),
+    }))
+    .filter((item) => item.handle.length > 0);
+}
+
+function newSocialId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `social-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 function Status({
   ok,
@@ -27,6 +80,59 @@ async function syncSiteBrandLogo(url: string | null) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ brandLogo: url || "" }),
   });
+}
+
+async function syncSiteSocialLinks(links: ProfileSocialLink[]) {
+  try {
+    await fetch("/api/site-social", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ socialLinks: links }),
+    });
+  } catch {
+    // Footer still reads from Supabase profile/org branding.
+  }
+}
+
+async function persistProfileSocials({
+  profileId,
+  organization,
+  links,
+}: {
+  profileId: string;
+  organization?: Organization | null;
+  links: ProfileSocialLink[];
+}) {
+  const cleaned = links
+    .map((item) => ({
+      id: item.id,
+      platform: (item.platform || "Other").trim() || "Other",
+      handle: (item.handle || "").trim(),
+    }))
+    .filter((item) => item.handle.length > 0);
+
+  const supabase = createClient();
+  const { error: updateError } = await supabase
+    .from("kn_profiles")
+    .update({ social_links: cleaned })
+    .eq("id", profileId);
+  if (updateError) throw new Error(updateError.message);
+
+  if (organization) {
+    const nextBranding = {
+      ...(organization.branding && typeof organization.branding === "object"
+        ? organization.branding
+        : {}),
+      socialLinks: cleaned,
+    };
+    await supabase
+      .from("kn_organizations")
+      .update({ branding: nextBranding })
+      .eq("id", organization.id);
+  }
+
+  void syncSiteSocialLinks(cleaned);
+  return cleaned;
 }
 
 async function uploadImage(file: File, alt: string) {
@@ -162,6 +268,15 @@ export function ProfileSettingsForm({
   const [phone, setPhone] = useState(() =>
     formatPhoneInput(profile.phone || ""),
   );
+  const [zipZone, setZipZone] = useState(profile.zip_zone || "");
+  const [dateOfBirth, setDateOfBirth] = useState(
+    () => profile.date_of_birth?.slice(0, 10) || "",
+  );
+  const [gender, setGender] = useState(profile.gender || "");
+  const [socialLinks, setSocialLinks] = useState<ProfileSocialLink[]>(() =>
+    normalizeSocialLinks(profile.social_links),
+  );
+  const [editingSocialId, setEditingSocialId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
   const [logoUrl, setLogoUrl] = useState(organization?.logo_url ?? null);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -169,6 +284,8 @@ export function ProfileSettingsForm({
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState("");
   const [error, setError] = useState("");
+  const [csvImporting, setCsvImporting] = useState(false);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   async function uploadAvatar(file: File) {
     setAvatarUploading(true);
@@ -264,23 +381,185 @@ export function ProfileSettingsForm({
     setLoading(true);
     setOk("");
     setError("");
+
+    if (socialLinks.some((s) => !s.handle.trim())) {
+      setLoading(false);
+      setError("Add a handle for every social link, or remove empty rows.");
+      return;
+    }
+
+    const cleanedSocials = normalizeSocialLinks(socialLinks);
     const supabase = createClient();
     const { error: updateError } = await supabase
       .from("kn_profiles")
       .update({
         full_name: fullName.trim(),
         phone: phone.trim() || null,
+        zip_zone: zipZone.trim() || null,
+        date_of_birth: dateOfBirth.trim() || null,
+        gender: gender.trim() || null,
+        social_links: cleanedSocials,
         avatar_url: avatarUrl,
       })
       .eq("id", profile.id);
 
-    setLoading(false);
     if (updateError) {
+      setLoading(false);
       setError(updateError.message);
       return;
     }
-    setOk("Profile saved.");
-    router.refresh();
+
+    try {
+      if (organization) {
+        const nextBranding = {
+          ...(organization.branding && typeof organization.branding === "object"
+            ? organization.branding
+            : {}),
+          socialLinks: cleanedSocials,
+        };
+        await supabase
+          .from("kn_organizations")
+          .update({ branding: nextBranding })
+          .eq("id", organization.id);
+      }
+      void syncSiteSocialLinks(cleanedSocials);
+      setSocialLinks(cleanedSocials);
+      setEditingSocialId(null);
+      setOk("Profile saved. Social links are live on the site footer.");
+      router.refresh();
+    } catch (err) {
+      setSocialLinks(cleanedSocials);
+      setOk("Profile saved.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Social links could not sync to the footer.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function addSocial() {
+    const id = newSocialId();
+    setSocialLinks((prev) => [
+      ...prev,
+      { id, platform: "Instagram", handle: "" },
+    ]);
+    setEditingSocialId(id);
+    setOk("");
+    setError("");
+  }
+
+  function updateSocial(
+    id: string,
+    patch: Partial<Pick<ProfileSocialLink, "platform" | "handle">>,
+  ) {
+    setSocialLinks((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    );
+  }
+
+  async function finishSocial(id: string) {
+    const row = socialLinks.find((item) => item.id === id);
+    if (!row || !row.handle.trim()) {
+      setError("Add a handle before finishing this social link.");
+      return;
+    }
+    setError("");
+    setOk("");
+    setEditingSocialId(null);
+    const next = socialLinks.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            handle: item.handle.trim(),
+            platform: item.platform.trim() || "Other",
+          }
+        : item,
+    );
+    setSocialLinks(normalizeSocialLinks(next));
+    try {
+      const saved = await persistProfileSocials({
+        profileId: profile.id,
+        organization,
+        links: next,
+      });
+      setSocialLinks(saved);
+      setOk("Social link published to the site footer.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not publish social link.",
+      );
+    }
+  }
+
+  async function deleteSocial(id: string) {
+    const next = socialLinks.filter((item) => item.id !== id);
+    setSocialLinks(next);
+    setEditingSocialId((current) => (current === id ? null : current));
+    setOk("");
+    setError("");
+    try {
+      const saved = await persistProfileSocials({
+        profileId: profile.id,
+        organization,
+        links: next,
+      });
+      setSocialLinks(saved);
+      setOk(
+        saved.length
+          ? "Social link removed from the site footer."
+          : "All social links removed from the site footer.",
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not update social links.",
+      );
+    }
+  }
+
+  function exportProfileCsv() {
+    setOk("");
+    setError("");
+    const csv = buildProfileCsv({
+      fullName,
+      phone,
+      zipZone,
+      dateOfBirth,
+      gender,
+      socialLinks: normalizeSocialLinks(socialLinks),
+      email: profile.email,
+    });
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadProfileCsv(csv, `keynestos-profile-${stamp}.csv`);
+    setOk("Profile CSV downloaded.");
+  }
+
+  async function importProfileCsv(file: File) {
+    setCsvImporting(true);
+    setOk("");
+    setError("");
+    try {
+      const text = await file.text();
+      const parsed = parseProfileCsv(text);
+      if (parsed.fullName) setFullName(parsed.fullName);
+      if (parsed.phone) setPhone(formatPhoneInput(parsed.phone));
+      if (parsed.zipZone) setZipZone(parsed.zipZone);
+      if (parsed.dateOfBirth) setDateOfBirth(parsed.dateOfBirth.slice(0, 10));
+      if (parsed.gender !== undefined) setGender(parsed.gender);
+      if (parsed.socialLinks.length > 0) {
+        setSocialLinks(parsed.socialLinks);
+        setEditingSocialId(null);
+      }
+      setOk(
+        "CSV imported into the form. Review the fields, then click Save profile.",
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not import CSV.");
+    } finally {
+      setCsvImporting(false);
+    }
   }
 
   return (
@@ -324,29 +603,250 @@ export function ProfileSettingsForm({
         )}
       </div>
 
-      <label className="field">
-        <span>Email</span>
-        <input value={profile.email} disabled />
-      </label>
-      <label className="field">
-        <span>Full name</span>
-        <input
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          required
-        />
-      </label>
-      <label className="field">
-        <span>Phone</span>
-        <input
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          value={phone}
-          onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
-          placeholder="(555) 000-0000"
-        />
-      </label>
+      <div className="settings-field-row">
+        <label className="field">
+          <span>Full name</span>
+          <input
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+          />
+        </label>
+        <label className="field">
+          <span>Email</span>
+          <input value={profile.email} disabled />
+        </label>
+      </div>
+      <div className="settings-field-row">
+        <label className="field">
+          <span>Phone</span>
+          <input
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+            placeholder="(555) 000-0000"
+          />
+        </label>
+        <label className="field">
+          <span>Zip code zone</span>
+          <input
+            type="text"
+            inputMode="text"
+            autoComplete="postal-code"
+            value={zipZone}
+            onChange={(e) => setZipZone(e.target.value)}
+            placeholder="10001 or 10001–10019"
+            maxLength={64}
+          />
+        </label>
+      </div>
+      <div className="settings-field-row">
+        <label className="field">
+          <span>Date of birth</span>
+          <input
+            type="date"
+            autoComplete="bday"
+            value={dateOfBirth}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
+          />
+        </label>
+        <label className="field">
+          <span>Gender</span>
+          <select
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            autoComplete="sex"
+          >
+            {GENDER_OPTIONS.map((option) => (
+              <option key={option.value || "unspecified"} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="settings-social">
+        <div className="settings-social__head">
+          <div>
+            <p className="settings-social__title">Social media</p>
+            <p className="settings-social__sub">
+              Add handles people can find you on. Confirming a row publishes it
+              to the website footer.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary settings-social__add"
+            onClick={addSocial}
+          >
+            + Add social
+          </button>
+        </div>
+
+        {socialLinks.length === 0 ? (
+          <p className="settings-social__empty">No social handles yet.</p>
+        ) : (
+          <ul className="settings-social__list">
+            {socialLinks.map((item) => {
+              const editing = editingSocialId === item.id;
+              return (
+                <li
+                  key={item.id}
+                  className={`settings-social__item${editing ? " is-editing" : ""}`}
+                >
+                  {editing ? (
+                    <div className="settings-social__fields">
+                      <label className="field settings-social__platform">
+                        <span>Platform</span>
+                        <div className="settings-social__platform-control">
+                          <span className="settings-social__mark" aria-hidden>
+                            <SocialPlatformIcon platform={item.platform} />
+                          </span>
+                          <select
+                            value={
+                              SOCIAL_PLATFORMS.includes(
+                                item.platform as (typeof SOCIAL_PLATFORMS)[number],
+                              )
+                                ? item.platform
+                                : "Other"
+                            }
+                            onChange={(e) =>
+                              updateSocial(item.id, { platform: e.target.value })
+                            }
+                            aria-label="Platform"
+                          >
+                            {SOCIAL_PLATFORMS.map((platform) => (
+                              <option key={platform} value={platform}>
+                                {platform}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </label>
+                      <label className="field settings-social__handle">
+                        <span>Handle</span>
+                        <input
+                          value={item.handle}
+                          onChange={(e) =>
+                            updateSocial(item.id, { handle: e.target.value })
+                          }
+                          placeholder="@username or profile URL"
+                          aria-label="Handle"
+                          autoFocus
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="settings-social__preview">
+                      <span className="settings-social__mark" aria-hidden>
+                        <SocialPlatformIcon platform={item.platform} />
+                      </span>
+                      <div className="settings-social__preview-copy">
+                        <p className="settings-social__platform-label">
+                          {item.platform}
+                        </p>
+                        <p className="settings-social__handle-label">
+                          {item.handle.startsWith("@") ||
+                          item.handle.includes("/")
+                            ? item.handle
+                            : `@${item.handle}`}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="settings-social__actions">
+                    {editing ? (
+                      <button
+                        type="button"
+                        className="settings-social__icon-btn"
+                        aria-label="Done editing"
+                        title="Done"
+                        onClick={() => void finishSocial(item.id)}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="settings-social__icon-btn"
+                        aria-label={`Edit ${item.platform}`}
+                        title="Edit"
+                        onClick={() => setEditingSocialId(item.id)}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="settings-social__icon-btn settings-social__icon-btn--danger"
+                      aria-label={`Delete ${item.platform}`}
+                      title="Delete"
+                      onClick={() => void deleteSocial(item.id)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <path d="M3 6h18" />
+                        <path d="M8 6V4h8v2" />
+                        <path d="M19 6l-1 14H6L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                      </svg>
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="settings-csv">
+        <div className="settings-csv__copy">
+          <p className="settings-csv__title">Export / import CSV</p>
+          <p className="settings-csv__sub">
+            Download your profile and social handles, or load a CSV into this
+            form before saving.
+          </p>
+        </div>
+        <div className="settings-csv__actions">
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={exportProfileCsv}
+          >
+            Export CSV
+          </button>
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void importProfileCsv(file);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={csvImporting}
+            onClick={() => csvInputRef.current?.click()}
+          >
+            {csvImporting ? "Importing…" : "Import CSV"}
+          </button>
+        </div>
+      </div>
+
       <Status ok={ok} error={error} />
       <button className="btn-primary w-fit" disabled={loading}>
         {loading ? "Saving…" : "Save profile"}
@@ -358,10 +858,45 @@ export function ProfileSettingsForm({
 export function SecuritySettingsPanel({
   hasPassword,
   mfaEnabled,
+  canClearPlatform = false,
 }: {
   hasPassword: boolean;
   mfaEnabled: boolean;
+  canClearPlatform?: boolean;
 }) {
+  const router = useRouter();
+  const [clearStep, setClearStep] = useState<0 | 1 | 2>(0);
+  const [confirmText, setConfirmText] = useState("");
+  const [clearLoading, setClearLoading] = useState(false);
+  const [clearOk, setClearOk] = useState("");
+  const [clearError, setClearError] = useState("");
+
+  async function clearPlatformData() {
+    setClearLoading(true);
+    setClearOk("");
+    setClearError("");
+    try {
+      const res = await fetch("/api/platform/clear-data", { method: "POST" });
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error || "Could not clear platform data.");
+      }
+      setClearOk(body.message || "Platform data cleared.");
+      setClearStep(0);
+      setConfirmText("");
+      router.refresh();
+    } catch (err) {
+      setClearError(
+        err instanceof Error ? err.message : "Could not clear platform data.",
+      );
+    } finally {
+      setClearLoading(false);
+    }
+  }
+
   return (
     <div className="settings-panel space-y-5">
       <div>
@@ -405,6 +940,107 @@ export function SecuritySettingsPanel({
           </Link>
         </li>
       </ul>
+
+      {canClearPlatform ? (
+        <div className="settings-danger">
+          <div className="settings-danger__head">
+            <div>
+              <p className="settings-danger__title">Clear platform data</p>
+              <p className="settings-danger__sub">
+                Format and wipe CRM listings, leads, agents, categories, media,
+                and site content back to the demo seed. Auth accounts are not
+                deleted.
+              </p>
+            </div>
+            {clearStep === 0 ? (
+              <button
+                type="button"
+                className="btn-secondary settings-danger__trigger"
+                onClick={() => {
+                  setClearStep(1);
+                  setClearOk("");
+                  setClearError("");
+                }}
+              >
+                Clear data
+              </button>
+            ) : null}
+          </div>
+
+          {clearStep === 1 ? (
+            <div className="settings-danger__warn" role="alert">
+              <p className="settings-danger__warn-title">Warning</p>
+              <p>
+                This permanently replaces live CRM and marketing data with the
+                seeded demo dataset. Uploaded listing records and leads will be
+                removed from the platform store.
+              </p>
+              <div className="settings-danger__actions">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setClearStep(0)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary settings-danger__continue"
+                  onClick={() => {
+                    setClearStep(2);
+                    setConfirmText("");
+                  }}
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {clearStep === 2 ? (
+            <div className="settings-danger__warn settings-danger__warn--final" role="alert">
+              <p className="settings-danger__warn-title">Final confirmation</p>
+              <p>
+                Type <strong>CLEAR</strong> to confirm you want to format and
+                wipe platform data. This cannot be undone.
+              </p>
+              <label className="field">
+                <span>Confirmation</span>
+                <input
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  placeholder="CLEAR"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </label>
+              <div className="settings-danger__actions">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={clearLoading}
+                  onClick={() => {
+                    setClearStep(0);
+                    setConfirmText("");
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="settings-danger__confirm"
+                  disabled={clearLoading || confirmText.trim() !== "CLEAR"}
+                  onClick={() => void clearPlatformData()}
+                >
+                  {clearLoading ? "Clearing…" : "Format & clear data"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <Status ok={clearOk} error={clearError} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -772,5 +1408,233 @@ export function NotificationSettingsForm() {
       <Status ok={ok} />
       <button className="btn-primary w-fit">Save preferences</button>
     </form>
+  );
+}
+
+export function ArchivesSettingsPanel({
+  deleted,
+  drafts,
+  closed,
+}: {
+  deleted: ArchiveItem[];
+  drafts: ArchiveItem[];
+  closed: ArchiveItem[];
+}) {
+  const router = useRouter();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [ok, setOk] = useState("");
+
+  async function restore(id: string) {
+    setBusyId(id);
+    setError("");
+    setOk("");
+    try {
+      const res = await fetch(`/api/properties?id=${id}&restore=1`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error || "Could not restore property.");
+      }
+      setOk("Property restored.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not restore.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function purge(id: string, title: string) {
+    if (
+      !confirm(
+        `Permanently delete “${title}”? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setBusyId(id);
+    setError("");
+    setOk("");
+    try {
+      const res = await fetch(`/api/properties?id=${id}&permanent=1`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error || "Could not delete permanently.");
+      }
+      setOk("Property permanently deleted.");
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not delete permanently.",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const empty =
+    deleted.length === 0 && drafts.length === 0 && closed.length === 0;
+
+  return (
+    <div className="settings-panel space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-[#0c0407]">Archives</h2>
+        <p className="mt-1 text-sm text-[#758696]">
+          Deleted listings stay here until you restore or permanently remove
+          them. Drafts and closed listings are listed for quick access.
+        </p>
+      </div>
+
+      <Status ok={ok} error={error} />
+
+      {empty ? (
+        <p className="settings-social__empty">
+          No drafts, deleted, or closed listings yet.
+        </p>
+      ) : null}
+
+      <ArchiveSection
+        title="Deleted"
+        hint="Removed from inventory — restore or delete forever."
+        emptyLabel="No deleted properties."
+        items={deleted}
+        badge={(item) => (
+          <span className="settings-archives__badge settings-archives__badge--deleted">
+            Deleted
+          </span>
+        )}
+        meta={(item) =>
+          item.deletedAt
+            ? `Removed ${new Date(item.deletedAt).toLocaleString()}`
+            : "Removed"
+        }
+        actions={(item) => (
+          <>
+            <button
+              type="button"
+              className="btn-secondary settings-archives__open"
+              disabled={busyId === item.id}
+              onClick={() => void restore(item.id)}
+            >
+              {busyId === item.id ? "Working…" : "Restore"}
+            </button>
+            <button
+              type="button"
+              className="settings-archives__purge"
+              disabled={busyId === item.id}
+              onClick={() => void purge(item.id, item.title)}
+            >
+              Delete forever
+            </button>
+          </>
+        )}
+      />
+
+      <ArchiveSection
+        title="Drafts"
+        hint="Unpublished listings still in progress."
+        emptyLabel="No drafts."
+        items={drafts}
+        badge={() => (
+          <span className="settings-archives__badge settings-archives__badge--draft">
+            Draft
+          </span>
+        )}
+        meta={(item) =>
+          `${item.city}, ${item.state} · ${item.priceLabel}`
+        }
+        actions={(item) => (
+          <Link
+            href={`/dashboard/properties/${item.id}`}
+            className="btn-secondary settings-archives__open"
+          >
+            Open
+          </Link>
+        )}
+      />
+
+      <ArchiveSection
+        title="Closed"
+        hint="Sold or rented listings."
+        emptyLabel="No closed listings."
+        items={closed}
+        badge={(item) => (
+          <span
+            className={`settings-archives__badge settings-archives__badge--${item.status}`}
+          >
+            {item.status === "sold" ? "Sold" : "Rented"}
+          </span>
+        )}
+        meta={(item) =>
+          `${item.city}, ${item.state} · ${item.priceLabel}`
+        }
+        actions={(item) => (
+          <Link
+            href={`/dashboard/properties/${item.id}`}
+            className="btn-secondary settings-archives__open"
+          >
+            Open
+          </Link>
+        )}
+      />
+    </div>
+  );
+}
+
+type ArchiveItem = {
+  id: string;
+  title: string;
+  city: string;
+  state: string;
+  status: Property["status"];
+  deletedAt: string | null;
+  priceLabel: string;
+  updatedAt: string;
+};
+
+function ArchiveSection({
+  title,
+  hint,
+  emptyLabel,
+  items,
+  badge,
+  meta,
+  actions,
+}: {
+  title: string;
+  hint: string;
+  emptyLabel: string;
+  items: ArchiveItem[];
+  badge: (item: ArchiveItem) => ReactNode;
+  meta: (item: ArchiveItem) => string;
+  actions: (item: ArchiveItem) => ReactNode;
+}) {
+  return (
+    <section className="settings-archives-section">
+      <div className="settings-archives-section__head">
+        <h3 className="settings-archives-section__title">{title}</h3>
+        <p className="settings-archives-section__hint">{hint}</p>
+      </div>
+      {items.length === 0 ? (
+        <p className="settings-social__empty">{emptyLabel}</p>
+      ) : (
+        <ul className="settings-archives">
+          {items.map((item) => (
+            <li key={item.id} className="settings-archives__item">
+              <div className="settings-archives__copy">
+                <p className="settings-archives__title">{item.title}</p>
+                <p className="settings-archives__meta">{meta(item)}</p>
+              </div>
+              {badge(item)}
+              <div className="settings-archives__actions">{actions(item)}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

@@ -10,14 +10,19 @@ import { PropertySearch } from "@/components/site/PropertySearch";
 type HeroProps = {
   headline: string;
   support: string;
+  image?: string;
 };
 
-export function Hero({ headline, support }: HeroProps) {
+export function Hero({
+  headline,
+  support,
+  image,
+}: HeroProps) {
   return (
     <section id="home" className="hero-modern">
       <div className="hero-modern__media">
         <Image
-          src={ASSETS.hero}
+          src={image || ASSETS.hero}
           alt="Modern home exterior"
           fill
           priority

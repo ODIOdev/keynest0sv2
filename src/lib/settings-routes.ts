@@ -6,6 +6,7 @@ export const SETTINGS = {
   twoFactor: "/dashboard/settings/two-factor",
   sessions: "/dashboard/settings/sessions",
   notifications: "/dashboard/settings/notifications",
+  archives: "/dashboard/settings/archives",
 } as const;
 
 export const SETTINGS_NAV = [
@@ -19,4 +20,5 @@ export const SETTINGS_NAV = [
     label: "Notifications",
     hint: "Email alerts",
   },
+  { href: SETTINGS.archives, label: "Archives", hint: "Drafts & deleted" },
 ] as const;

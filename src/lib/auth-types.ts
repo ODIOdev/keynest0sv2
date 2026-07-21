@@ -10,6 +10,12 @@ export type AppRole =
   | "assistant"
   | "customer";
 
+export type ProfileSocialLink = {
+  id: string;
+  platform: string;
+  handle: string;
+};
+
 export type Profile = {
   id: string;
   email: string;
@@ -17,6 +23,12 @@ export type Profile = {
   avatar_url: string | null;
   account_type: AccountType | null;
   phone: string | null;
+  /** Coverage / service zip code zone (e.g. 10001 or 10001–10019) */
+  zip_zone: string | null;
+  /** Date of birth (YYYY-MM-DD) */
+  date_of_birth: string | null;
+  gender: string | null;
+  social_links: ProfileSocialLink[] | null;
   onboarding_completed: boolean;
   created_at: string;
   updated_at: string;

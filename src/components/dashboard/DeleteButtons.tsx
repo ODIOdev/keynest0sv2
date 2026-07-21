@@ -16,6 +16,13 @@ export function DeletePropertyButton({
       type="button"
       className={className}
       onClick={async () => {
+        if (
+          !confirm(
+            "Move this property to Archives? You can restore it later from Settings → Archives.",
+          )
+        ) {
+          return;
+        }
         await fetch(`/api/properties?id=${id}`, { method: "DELETE" });
         router.refresh();
       }}

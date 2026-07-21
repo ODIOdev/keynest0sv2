@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from "fs
 import path from "path";
 import { nanoid } from "nanoid";
 import { seedDatabase } from "./seed";
+import { mergeSiteSettings } from "./site-settings";
 import type {
   Agent,
   Category,
@@ -67,6 +68,9 @@ export function getDb(): Database {
       ensurePropertyZip(db);
       ensurePlatformListingTags(db);
       ensureBrandLogo(db);
+      ensureSocialLinks(db);
+      ensureSiteContent(db);
+      ensurePropertyDeletedAt(db);
       setMemoryDb(db, mtime);
       return db;
     }
@@ -230,6 +234,44 @@ function ensureBrandLogo(db: Database) {
   }
 }
 
+function ensureSocialLinks(db: Database) {
+  if (!db.settings) return;
+  if (Array.isArray(db.settings.socialLinks)) return;
+  db.settings.socialLinks = [];
+  try {
+    writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  } catch {
+    // Memory-only is fine when disk writes fail.
+  }
+}
+
+function ensureSiteContent(db: Database) {
+  const before = JSON.stringify(db.settings ?? null);
+  db.settings = mergeSiteSettings(db.settings);
+  if (JSON.stringify(db.settings) === before) return;
+  try {
+    writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  } catch {
+    // Memory-only is fine when disk writes fail.
+  }
+}
+
+function ensurePropertyDeletedAt(db: Database) {
+  let dirty = false;
+  for (const property of db.properties) {
+    if (property.deletedAt === undefined) {
+      property.deletedAt = null;
+      dirty = true;
+    }
+  }
+  if (!dirty) return;
+  try {
+    writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  } catch {
+    // Memory-only is fine when disk writes fail.
+  }
+}
+
 export function resetDb() {
   const seeded = seedDatabase();
   saveDb(seeded);
@@ -245,12 +287,12 @@ export function slugify(input: string) {
 }
 
 export function getSettings() {
-  return getDb().settings;
+  return mergeSiteSettings(getDb().settings);
 }
 
 export function updateSettings(patch: Partial<SiteSettings>) {
   const db = getDb();
-  db.settings = { ...db.settings, ...patch };
+  db.settings = mergeSiteSettings({ ...db.settings, ...patch });
   saveDb(db);
   return db.settings;
 }
@@ -387,8 +429,17 @@ export function listProperties(opts?: {
   baths?: number;
   sqft?: number;
   psf?: number;
+  /** Include soft-deleted rows (default false). */
+  includeDeleted?: boolean;
+  /** Only soft-deleted rows. */
+  deletedOnly?: boolean;
 }) {
   let items = getDb().properties;
+  if (opts?.deletedOnly) {
+    items = items.filter((p) => Boolean(p.deletedAt));
+  } else if (!opts?.includeDeleted) {
+    items = items.filter((p) => !p.deletedAt);
+  }
   if (opts?.featured !== undefined) {
     items = items.filter((p) => p.featured === opts.featured);
   }
@@ -430,16 +481,25 @@ export function listProperties(opts?: {
   );
 }
 
-export function getProperty(idOrSlug: string) {
+export function getProperty(
+  idOrSlug: string,
+  opts?: { includeDeleted?: boolean },
+) {
   const db = getDb();
-  return (
-    db.properties.find((p) => p.id === idOrSlug || p.slug === idOrSlug) ?? null
-  );
+  const property =
+    db.properties.find((p) => p.id === idOrSlug || p.slug === idOrSlug) ?? null;
+  if (!property) return null;
+  if (property.deletedAt && !opts?.includeDeleted) return null;
+  return property;
 }
 
 export function createProperty(
-  input: Omit<Property, "id" | "createdAt" | "updatedAt" | "slug"> & {
+  input: Omit<
+    Property,
+    "id" | "createdAt" | "updatedAt" | "slug" | "deletedAt"
+  > & {
     slug?: string;
+    deletedAt?: string | null;
   },
 ) {
   const db = getDb();
@@ -450,6 +510,7 @@ export function createProperty(
     zip: typeof input.zip === "string" ? input.zip : "",
     lat: typeof input.lat === "number" ? input.lat : null,
     lng: typeof input.lng === "number" ? input.lng : null,
+    deletedAt: input.deletedAt ?? null,
     id: nanoid(10),
     slug: input.slug || slugify(input.title),
     createdAt: now,
@@ -474,10 +535,42 @@ export function updateProperty(id: string, patch: Partial<Property>) {
   return db.properties[idx];
 }
 
+/** Soft-delete — recoverable from Settings → Archives. */
 export function deleteProperty(id: string) {
   const db = getDb();
-  db.properties = db.properties.filter((p) => p.id !== id);
+  const idx = db.properties.findIndex((p) => p.id === id);
+  if (idx === -1) return null;
+  const now = new Date().toISOString();
+  db.properties[idx] = {
+    ...db.properties[idx],
+    deletedAt: now,
+    updatedAt: now,
+  };
   saveDb(db);
+  return db.properties[idx];
+}
+
+export function restoreProperty(id: string) {
+  const db = getDb();
+  const idx = db.properties.findIndex((p) => p.id === id);
+  if (idx === -1) return null;
+  db.properties[idx] = {
+    ...db.properties[idx],
+    deletedAt: null,
+    updatedAt: new Date().toISOString(),
+  };
+  saveDb(db);
+  return db.properties[idx];
+}
+
+/** Permanent removal — cannot be undone. */
+export function purgeProperty(id: string) {
+  const db = getDb();
+  const before = db.properties.length;
+  db.properties = db.properties.filter((p) => p.id !== id);
+  if (db.properties.length === before) return false;
+  saveDb(db);
+  return true;
 }
 
 export function listAgents() {

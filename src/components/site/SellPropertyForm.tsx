@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import {
+  PlacesAutocompleteInput,
+  type PlaceSelection,
+} from "@/components/site/PlacesAutocompleteInput";
+import { normalizeUsState, US_STATES } from "@/lib/us-states";
 
 type Status = "idle" | "loading" | "ok" | "error";
 
@@ -37,13 +42,34 @@ export function SellPropertyForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [goal, setGoal] = useState<"sell" | "rent">("sell");
   const [propertyType, setPropertyType] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setStateCode] = useState("");
+  const [zip, setZip] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
   const [typeError, setTypeError] = useState(false);
 
+  // Avoid fighting the site-card scrollport on first paint.
   useEffect(() => {
+    if (step === 1) return;
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [step]);
+
+  function onPlaceSelect(place: PlaceSelection | null) {
+    if (!place) return;
+    setAddress(place.street || place.label);
+    if (place.city) setCity(place.city);
+    if (place.state) setStateCode(normalizeUsState(place.state) || place.state);
+    if (place.zip) setZip(place.zip);
+  }
+
+  function resetAddressFields() {
+    setAddress("");
+    setCity("");
+    setStateCode("");
+    setZip("");
+  }
 
   function goNext() {
     if (!formRef.current) return;
@@ -85,10 +111,6 @@ export function SellPropertyForm() {
     setStatus("loading");
     const form = new FormData(e.currentTarget);
 
-    const address = String(form.get("address") || "");
-    const city = String(form.get("city") || "");
-    const state = String(form.get("state") || "");
-    const zip = String(form.get("zip") || "");
     const price = String(form.get("price") || "");
     const bedrooms = String(form.get("bedrooms") || "");
     const bathrooms = String(form.get("bathrooms") || "");
@@ -129,6 +151,7 @@ export function SellPropertyForm() {
       e.currentTarget.reset();
       setGoal("sell");
       setPropertyType("");
+      resetAddressFields();
       setStep(1);
     } else {
       setStatus("error");
@@ -219,11 +242,14 @@ export function SellPropertyForm() {
 
           <label className="field">
             <span>Street address</span>
-            <input
+            <PlacesAutocompleteInput
               name="address"
               required
-              autoComplete="street-address"
-              placeholder="123 Main Street"
+              autoComplete="off"
+              placeholder="Start typing an address…"
+              value={address}
+              onChange={setAddress}
+              onPlaceSelect={onPlaceSelect}
               tabIndex={step === 1 ? undefined : -1}
             />
           </label>
@@ -236,18 +262,30 @@ export function SellPropertyForm() {
                 required
                 autoComplete="address-level2"
                 placeholder="City"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
                 tabIndex={step === 1 ? undefined : -1}
               />
             </label>
             <label className="field">
               <span>State</span>
-              <input
+              <select
                 name="state"
                 required
+                value={state}
+                onChange={(e) => setStateCode(e.target.value)}
                 autoComplete="address-level1"
-                placeholder="CA"
                 tabIndex={step === 1 ? undefined : -1}
-              />
+              >
+                <option value="" disabled>
+                  State
+                </option>
+                {US_STATES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="field">
               <span>ZIP</span>
@@ -257,6 +295,8 @@ export function SellPropertyForm() {
                 autoComplete="postal-code"
                 inputMode="numeric"
                 placeholder="94107"
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
                 tabIndex={step === 1 ? undefined : -1}
               />
             </label>

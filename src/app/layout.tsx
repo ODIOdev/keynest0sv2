@@ -6,7 +6,10 @@ import { ChatProvider } from "@/components/site/ChatWidget";
 import { SitePreloader } from "@/components/site/SitePreloader";
 import { SiteViewport } from "@/components/site/SiteViewport";
 import { getSettings } from "@/lib/db";
+import { getPublicSocialLinks } from "@/lib/public-social";
 import "./globals.css";
+
+export const dynamic = "force-dynamic";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,12 +34,13 @@ export const metadata: Metadata = {
     "Buy and sell your dream home with KeyNestOS. Property listings, agents, and broker CRM in one place.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const settings = getSettings();
+  const socialLinks = await getPublicSocialLinks();
 
   return (
     <html lang="en">
@@ -44,6 +48,7 @@ export default function RootLayout({
         <BrandProvider
           brandName={settings.brandName}
           brandLogo={settings.brandLogo || null}
+          socialLinks={socialLinks}
         >
           <SmoothScrollProvider>
             <SitePreloader />

@@ -1,4 +1,5 @@
 import type { Database } from "./types";
+import { defaultSiteSettings } from "./site-settings";
 
 const CDN = "https://cdn.prod.website-files.com";
 const BASE = `${CDN}/670010141e02b62e6f054e13`;
@@ -275,7 +276,7 @@ export const seedDatabase = (): Database => {
       createdAt: now,
       updatedAt: now,
     },
-  ];
+  ].map((property) => ({ ...property, deletedAt: null as string | null }));
 
   return {
     categories,
@@ -338,42 +339,7 @@ export const seedDatabase = (): Database => {
         updatedAt: now,
       },
     ],
-    settings: {
-      brandName: "KeyNestOS",
-      brandLogo: "",
-      tagline: "Buy & Sell Your dream",
-      heroTitle: "Real-Estate",
-      aboutHeading: "The ideal way to find your dream home",
-      aboutText:
-        "Wake up to the sound of waves and the smell of salt air in one of our stunning coastal homes. Perfect for those seeking a serene escape, these properties offer unmatched ocean views and direct beach safe neighborhoods, and nearby schools access.",
-      aboutImage: `${BASE}/67014ccc08fb3aa6c87cb90d_about-thumb-1.jpg`,
-      stats: [
-        {
-          label: "Properties",
-          value: "200+",
-          description:
-            "Discover the key figures that highlight our impact in the real estate market. From satisfied clients to successful transactions",
-        },
-        {
-          label: "Satisfied Users",
-          value: "300+",
-          description:
-            "Take a closer look at the statistics that reflect our growth, success, and dedication to helping clients achieve their real estate goals.",
-        },
-        {
-          label: "Happy Clients",
-          value: "100%",
-          description:
-            "From closed deals to client satisfaction ratings, our numbers showcase the impact we’ve made in the real estate industry",
-        },
-        {
-          label: "Follower",
-          value: "900K",
-          description:
-            "Explore the numbers behind our real estate success, showcasing the trust clients place in us and the results we consistently deliver.",
-        },
-      ],
-    },
+    settings: defaultSiteSettings(),
   };
 };
 
